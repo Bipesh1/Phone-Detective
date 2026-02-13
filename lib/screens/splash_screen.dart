@@ -72,6 +72,13 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final titleFontSize = (screenWidth * 0.105).clamp(26.0, 42.0);
+    final titleLetterSpacing = screenWidth < 360
+        ? 3.0
+        : (screenWidth < 400 ? 5.0 : 8.0);
+    final emojiSize = (screenWidth * 0.16).clamp(48.0, 72.0);
+    final taglineFontSize = (screenWidth * 0.04).clamp(12.0, 16.0);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Center(
@@ -105,26 +112,32 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ],
                     ),
-                    child: const Text('🔍', style: TextStyle(fontSize: 72)),
+                    child: Text('🔍', style: TextStyle(fontSize: emojiSize)),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: screenWidth < 360 ? 16 : 24),
                   // Title
-                  Text(
-                    'PHONE',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                      letterSpacing: 8,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'PHONE',
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: titleFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                        letterSpacing: titleLetterSpacing,
+                      ),
                     ),
                   ),
-                  Text(
-                    'DETECTIVE',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                      letterSpacing: 8,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'DETECTIVE',
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: titleFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                        letterSpacing: titleLetterSpacing,
+                      ),
                     ),
                   ),
                 ],
@@ -140,16 +153,19 @@ class _SplashScreenState extends State<SplashScreen>
                   child: child,
                 );
               },
-              child: Text(
-                'Unlock the truth, one text at a time',
-                style: GoogleFonts.roboto(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                  letterSpacing: 1,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Unlock the truth, one text at a time',
+                  style: GoogleFonts.roboto(
+                    fontSize: taglineFontSize,
+                    color: AppColors.textSecondary,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 60),
+            SizedBox(height: screenWidth < 360 ? 36 : 60),
             // Loading indicator
             SizedBox(
               width: 24,

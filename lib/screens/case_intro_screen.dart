@@ -138,7 +138,10 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
           ),
           child: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+              padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).size.width < 360 ? 16 : 28,
+                vertical: MediaQuery.of(context).size.width < 400 ? 20 : 32,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -179,7 +182,9 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
                         Text(
                           caseData.title,
                           style: GoogleFonts.playfairDisplay(
-                            fontSize: 32,
+                            fontSize:
+                                (MediaQuery.of(context).size.width * 0.078)
+                                    .clamp(22.0, 32.0),
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                             height: 1.2,

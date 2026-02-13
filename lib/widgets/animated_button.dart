@@ -68,6 +68,12 @@ class _AnimatedButtonState extends State<AnimatedButton>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 360 ? 20.0 : 32.0;
+    final verticalPadding = screenWidth < 360 ? 12.0 : 16.0;
+    final fontSize = screenWidth < 360 ? 14.0 : 16.0;
+    final iconSize = screenWidth < 360 ? 18.0 : 20.0;
+
     return GestureDetector(
       onTapDown: widget.isLoading ? null : _handleTapDown,
       onTapUp: widget.isLoading ? null : _handleTapUp,
@@ -76,7 +82,10 @@ class _AnimatedButtonState extends State<AnimatedButton>
         scale: _scaleAnimation,
         child: Container(
           width: widget.width,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
           decoration: BoxDecoration(
             gradient: widget.isOutlined
                 ? null
@@ -125,17 +134,23 @@ class _AnimatedButtonState extends State<AnimatedButton>
                   Icon(
                     widget.icon,
                     color: widget.isOutlined ? AppColors.primary : Colors.white,
-                    size: 20,
+                    size: iconSize,
                   ),
                   const SizedBox(width: 8),
                 ],
-                Text(
-                  widget.text,
-                  style: TextStyle(
-                    color: widget.isOutlined ? AppColors.primary : Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                Flexible(
+                  child: Text(
+                    widget.text,
+                    style: TextStyle(
+                      color: widget.isOutlined
+                          ? AppColors.primary
+                          : Colors.white,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
               ],

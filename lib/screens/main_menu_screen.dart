@@ -70,6 +70,16 @@ class _MainMenuScreenState extends State<MainMenuScreen>
     final gameState = Provider.of<GameStateProvider>(context);
     final screenWidth = MediaQuery.of(context).size.width;
 
+    // Responsive sizing
+    final titleFontSize = (screenWidth * 0.115).clamp(28.0, 48.0);
+    final titleLetterSpacing = screenWidth < 360
+        ? 2.0
+        : (screenWidth < 400 ? 4.0 : 6.0);
+    final emojiSize = (screenWidth * 0.13).clamp(36.0, 56.0);
+    final badgeFontSize = (screenWidth * 0.035).clamp(11.0, 14.0);
+    final buttonWidth = (screenWidth * 0.68).clamp(200.0, 300.0);
+    final titleSpacing = screenWidth < 360 ? 40.0 : 60.0;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -87,8 +97,8 @@ class _MainMenuScreenState extends State<MainMenuScreen>
           child: Center(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(
-                horizontal: screenWidth < 360 ? 20 : 32,
-                vertical: 40,
+                horizontal: screenWidth < 360 ? 16 : 32,
+                vertical: screenWidth < 400 ? 24 : 40,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -98,24 +108,30 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                     opacity: _titleController,
                     child: Column(
                       children: [
-                        const Text('🔍', style: TextStyle(fontSize: 56)),
-                        const SizedBox(height: 16),
-                        Text(
-                          'PHONE',
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                            letterSpacing: 6,
+                        Text('🔍', style: TextStyle(fontSize: emojiSize)),
+                        SizedBox(height: screenWidth < 360 ? 10 : 16),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'PHONE',
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: titleFontSize,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                              letterSpacing: titleLetterSpacing,
+                            ),
                           ),
                         ),
-                        Text(
-                          'DETECTIVE',
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                            letterSpacing: 6,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'DETECTIVE',
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: titleFontSize,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                              letterSpacing: titleLetterSpacing,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -131,7 +147,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           child: Text(
                             '10 Cases to Solve',
                             style: GoogleFonts.roboto(
-                              fontSize: 14,
+                              fontSize: badgeFontSize,
                               color: AppColors.primary,
                               fontWeight: FontWeight.w500,
                             ),
@@ -140,7 +156,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                       ],
                     ),
                   ),
-                  const SizedBox(height: 60),
+                  SizedBox(height: titleSpacing),
 
                   // Buttons
                   SlideTransition(
@@ -155,7 +171,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           gameState.startCase(1);
                           Navigator.pushNamed(context, AppRoutes.caseIntro);
                         },
-                        width: 260,
+                        width: buttonWidth,
                       ),
                     ),
                   ),
@@ -174,7 +190,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                             Navigator.pushNamed(context, AppRoutes.phoneHome);
                           },
                           isPrimary: false,
-                          width: 260,
+                          width: buttonWidth,
                         ),
                       ),
                     ),
@@ -193,7 +209,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           Navigator.pushNamed(context, AppRoutes.caseSelect);
                         },
                         isOutlined: true,
-                        width: 260,
+                        width: buttonWidth,
                       ),
                     ),
                   ),
