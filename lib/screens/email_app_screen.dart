@@ -8,6 +8,7 @@ import '../models/email.dart';
 import '../models/clue.dart';
 import '../utils/constants.dart';
 import '../services/haptic_service.dart';
+import '../widgets/clue_hint_banner.dart';
 
 class EmailAppScreen extends StatefulWidget {
   const EmailAppScreen({super.key});
@@ -67,17 +68,24 @@ class _EmailAppScreenState extends State<EmailAppScreen> {
                 style: GoogleFonts.poppins(color: AppColors.textSecondary),
               ),
             )
-          : ListView.builder(
-              itemCount: emails.length,
-              itemBuilder: (context, index) {
-                final email = emails[index];
-                final isClue = gameState.isClueMarked(email.id);
-                return _EmailTile(
-                  email: email,
-                  isClue: isClue,
-                  gameState: gameState,
-                );
-              },
+          : Column(
+              children: [
+                ClueHintBanner(clueCount: gameState.currentClues.length),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: emails.length,
+                    itemBuilder: (context, index) {
+                      final email = emails[index];
+                      final isClue = gameState.isClueMarked(email.id);
+                      return _EmailTile(
+                        email: email,
+                        isClue: isClue,
+                        gameState: gameState,
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
     );
   }
@@ -155,41 +163,154 @@ class _EmailTile extends StatelessWidget {
       context: context,
       backgroundColor: AppColors.backgroundSecondary,
       isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              email.subject,
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'From: ${email.senderName} <${email.senderEmail}>',
-              style: GoogleFonts.roboto(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Text(
-                  email.body,
-                  style: GoogleFonts.roboto(
-                    color: AppColors.textPrimary,
-                    height: 1.6,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          final currentlyClue = gameState.isClueMarked(email.id);
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Handle bar
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.textTertiary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
+                // Subject
+                Text(
+                  email.subject,
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // From
+                Text(
+                  'From: ${email.senderName} <${email.senderEmail}>',
+                  style: GoogleFonts.roboto(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 4),
+                // Timestamp
+                Text(
+                  _formatTimestamp(email.timestamp),
+                  style: GoogleFonts.roboto(
+                    color: AppColors.textTertiary,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Clue button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      if (currentlyClue) {
+                        gameState.removeClue(email.id);
+                      } else {
+                        gameState.addClue(
+                          Clue(
+                            id: email.id,
+                            type: ClueType.email,
+                            sourceId: email.id,
+                            preview: '${email.senderName}: ${email.subject}',
+                            foundAt: DateTime.now(),
+                          ),
+                        );
+                        HapticService.heavyTap();
+                      }
+                      setSheetState(() {});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            currentlyClue
+                                ? 'Removed from clues'
+                                : 'Added to Detective Journal',
+                          ),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    icon: Icon(
+                      currentlyClue ? Icons.bookmark : Icons.bookmark_add,
+                      color: currentlyClue
+                          ? AppColors.clue
+                          : AppColors.textSecondary,
+                      size: 18,
+                    ),
+                    label: Text(
+                      currentlyClue ? 'Marked as Clue' : 'Mark as Clue',
+                      style: GoogleFonts.roboto(
+                        color: currentlyClue
+                            ? AppColors.clue
+                            : AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: currentlyClue
+                            ? AppColors.clue.withValues(alpha: 0.5)
+                            : AppColors.textTertiary.withValues(alpha: 0.3),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Divider(color: AppColors.textTertiary.withValues(alpha: 0.2)),
+                const SizedBox(height: 8),
+                // Body
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Text(
+                      email.body,
+                      style: GoogleFonts.roboto(
+                        color: AppColors.textPrimary,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
+  }
+
+  String _formatTimestamp(DateTime dt) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year} at $hour:$minute $period';
   }
 
   void _toggleClue(BuildContext context) {

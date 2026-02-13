@@ -9,6 +9,7 @@ import '../models/clue.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
+import '../widgets/clue_hint_banner.dart';
 
 class CallLogScreen extends StatelessWidget {
   const CallLogScreen({super.key});
@@ -44,36 +45,44 @@ class CallLogScreen extends StatelessWidget {
       ),
       body: calls.isEmpty
           ? _EmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: groupedCalls.length,
-              itemBuilder: (context, index) {
-                final date = groupedCalls.keys.elementAt(index);
-                final dateCalls = groupedCalls[date]!;
+          : Column(
+              children: [
+                ClueHintBanner(clueCount: gameState.currentClues.length),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: groupedCalls.length,
+                    itemBuilder: (context, index) {
+                      final date = groupedCalls.keys.elementAt(index);
+                      final dateCalls = groupedCalls[date]!;
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      child: Text(
-                        date,
-                        style: GoogleFonts.roboto(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                    ...dateCalls.map(
-                      (call) => _CallTile(call: call, gameState: gameState),
-                    ),
-                  ],
-                );
-              },
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            child: Text(
+                              date,
+                              style: GoogleFonts.roboto(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                          ...dateCalls.map(
+                            (call) =>
+                                _CallTile(call: call, gameState: gameState),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
     );
   }
@@ -158,25 +167,44 @@ class _CallTile extends StatelessWidget {
               ),
           ],
         ),
-        subtitle: Row(
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              call.type.name.toUpperCase(),
-              style: GoogleFonts.roboto(
-                fontSize: 12,
-                color: Color(call.type.colorValue),
-                fontWeight: FontWeight.w500,
-              ),
+            Row(
+              children: [
+                Text(
+                  call.type.name.toUpperCase(),
+                  style: GoogleFonts.roboto(
+                    fontSize: 12,
+                    color: Color(call.type.colorValue),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (call.displayDuration.isNotEmpty) ...[
+                  Text(
+                    ' • ${call.displayDuration}',
+                    style: GoogleFonts.roboto(
+                      fontSize: 12,
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ],
+              ],
             ),
-            if (call.displayDuration.isNotEmpty) ...[
-              Text(
-                ' • ${call.displayDuration}',
-                style: GoogleFonts.roboto(
-                  fontSize: 12,
-                  color: AppColors.textTertiary,
+            if (call.note != null && call.note!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  call.note!,
+                  style: GoogleFonts.roboto(
+                    fontSize: 11,
+                    color: AppColors.textTertiary,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ],
           ],
         ),
         trailing: Text(
@@ -244,7 +272,7 @@ class _CallTile extends StatelessWidget {
                       type: ClueType.call,
                       sourceId: call.id,
                       preview:
-                          '${call.type.name} call - ${contact?.fullName ?? call.phoneNumber}',
+                          '${call.type.name} call - ${contact?.fullName ?? call.phoneNumber}${call.note != null ? ': ${call.note}' : ''}',
                       foundAt: DateTime.now(),
                     );
                     gameState.addClue(clue);

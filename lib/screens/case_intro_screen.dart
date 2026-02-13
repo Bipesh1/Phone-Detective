@@ -7,6 +7,7 @@ import '../providers/game_state_provider.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
+import '../models/contact.dart';
 
 class CaseIntroScreen extends StatefulWidget {
   const CaseIntroScreen({super.key});
@@ -103,7 +104,28 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
 
   void _startInvestigation() {
     HapticService.heavyTap();
-    Navigator.pushReplacementNamed(context, AppRoutes.phoneHome);
+    final gameState = Provider.of<GameStateProvider>(context, listen: false);
+
+    // Find the "owner" contact to get their name
+    final owner = gameState.currentCase.contacts.firstWhere(
+      (c) => c.relationship == 'Phone Owner' || c.id == 'owner' || c.id == 'me',
+      orElse: () => Contact(
+        id: 'owner',
+        firstName: 'Unknown',
+        lastName: 'Device',
+        phoneNumber: '',
+        relationship: 'Owner',
+        avatarColor: Colors.grey,
+      ),
+    );
+
+    Navigator.pushReplacementNamed(
+      context,
+      AppRoutes.hackingSimulator,
+      arguments: {
+        'targetName': '${owner.firstName} ${owner.lastName}\'s Phone'
+      },
+    );
   }
 
   @override
@@ -295,16 +317,15 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
                     FadeTransition(
                       opacity: _objectiveController,
                       child: SlideTransition(
-                        position:
-                            Tween<Offset>(
-                              begin: const Offset(0, 0.2),
-                              end: Offset.zero,
-                            ).animate(
-                              CurvedAnimation(
-                                parent: _objectiveController,
-                                curve: Curves.easeOut,
-                              ),
-                            ),
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.2),
+                          end: Offset.zero,
+                        ).animate(
+                          CurvedAnimation(
+                            parent: _objectiveController,
+                            curve: Curves.easeOut,
+                          ),
+                        ),
                         child: Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
@@ -383,22 +404,87 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
                     ),
                   ],
 
+                  // How to Investigate Guide
+                  if (_showObjective) ...[
+                    const SizedBox(height: 32),
+                    FadeTransition(
+                      opacity: _objectiveController,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 20,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceDark.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color:
+                                AppColors.textTertiary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.tips_and_updates,
+                                  color: AppColors.primary,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'HOW TO INVESTIGATE',
+                                  style: GoogleFonts.robotoMono(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTipRow(
+                              Icons.smartphone,
+                              'Check Messages, Calls, Emails, Notes, and Gallery',
+                            ),
+                            const SizedBox(height: 12),
+                            _buildTipRow(
+                              Icons.touch_app,
+                              'Long-press any item to mark as evidence',
+                            ),
+                            const SizedBox(height: 12),
+                            _buildTipRow(
+                              Icons.bookmark,
+                              'Review collected clues in Detective Journal',
+                            ),
+                            const SizedBox(height: 12),
+                            _buildTipRow(
+                              Icons.gavel,
+                              'When ready, tap "Solve Case" in the Journal',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+
                   // Start button
                   if (_showButton) ...[
                     const SizedBox(height: 36),
                     FadeTransition(
                       opacity: _buttonController,
                       child: SlideTransition(
-                        position:
-                            Tween<Offset>(
-                              begin: const Offset(0, 0.3),
-                              end: Offset.zero,
-                            ).animate(
-                              CurvedAnimation(
-                                parent: _buttonController,
-                                curve: Curves.easeOut,
-                              ),
-                            ),
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.3),
+                          end: Offset.zero,
+                        ).animate(
+                          CurvedAnimation(
+                            parent: _buttonController,
+                            curve: Curves.easeOut,
+                          ),
+                        ),
                         child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
@@ -437,6 +523,29 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTipRow(IconData icon, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(icon, color: AppColors.textSecondary, size: 16),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.roboto(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

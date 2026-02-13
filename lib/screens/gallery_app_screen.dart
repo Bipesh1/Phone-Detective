@@ -153,6 +153,9 @@ class _PhotoGrid extends StatelessWidget {
           index: index,
           isMarkedAsClue: isClue,
           heroTag: 'photo_${photo.id}',
+          title: photo.title,
+          dateTaken: photo.displayDate,
+          hasHotspots: photo.hotspots.isNotEmpty,
           onTap: () {
             HapticService.lightTap();
             Navigator.pushNamed(

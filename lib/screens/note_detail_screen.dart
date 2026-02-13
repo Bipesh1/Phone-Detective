@@ -148,11 +148,14 @@ class NoteDetailScreen extends StatelessWidget {
         ),
       );
     } else {
+      final contentSnippet = note.content.length > 60
+          ? '${note.content.substring(0, 60)}...'
+          : note.content;
       final clue = Clue(
         id: noteId,
         type: ClueType.note,
         sourceId: noteId,
-        preview: note.title,
+        preview: '${note.title}: $contentSnippet',
         foundAt: DateTime.now(),
       );
       gameState.addClue(clue);

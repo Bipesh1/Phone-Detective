@@ -8,6 +8,7 @@ class CallRecord {
   final DateTime timestamp;
   final Duration duration;
   final bool isRead;
+  final String? note;
 
   const CallRecord({
     required this.id,
@@ -17,6 +18,7 @@ class CallRecord {
     required this.timestamp,
     required this.duration,
     this.isRead = true,
+    this.note,
   });
 
   String get displayTime {
@@ -70,6 +72,7 @@ class CallRecord {
       'timestamp': timestamp.toIso8601String(),
       'duration': duration.inSeconds,
       'isRead': isRead,
+      'note': note,
     };
   }
 
@@ -82,11 +85,11 @@ class CallRecord {
         (e) => e.name == json['type'],
         orElse: () => CallType.incoming,
       ),
-      timestamp:
-          DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
           DateTime.now(),
       duration: Duration(seconds: (json['duration'] as num?)?.toInt() ?? 0),
       isRead: json['isRead'] as bool? ?? true,
+      note: json['note'] as String?,
     );
   }
 }

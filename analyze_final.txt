@@ -1,0 +1,14 @@
+Analyzing Phone-Detective...                                    
+
+   info - Don't invoke 'print' in production code - lib\providers\game_state_provider.dart:71:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\providers\game_state_provider.dart:85:7 - avoid_print
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\help_screen.dart:107:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\help_screen.dart:109:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\phone_home_screen.dart:303:45 - deprecated_member_use
+   info - Don't invoke 'print' in production code - lib\services\supabase_service.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\supabase_service.dart:31:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\supabase_service.dart:36:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\supabase_service.dart:46:7 - avoid_print
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\tutorial_overlay.dart:119:45 - deprecated_member_use
+
+10 issues found. (ran in 5.6s)

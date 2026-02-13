@@ -9,6 +9,7 @@ import '../widgets/message_bubble.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
+import '../widgets/clue_hint_banner.dart';
 
 class ConversationScreen extends StatefulWidget {
   final String contactId;
@@ -87,6 +88,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ),
       body: Column(
         children: [
+          ClueHintBanner(clueCount: gameState.currentClues.length),
           // Messages
           Expanded(
             child: ListView.builder(
@@ -94,27 +96,63 @@ class _ConversationScreenState extends State<ConversationScreen> {
               reverse: true,
               itemCount: messages.length,
               itemBuilder: (context, index) {
-                final message = messages[messages.length - 1 - index];
+                final msgIndex = messages.length - 1 - index;
+                final message = messages[msgIndex];
                 final isClue = gameState.isClueMarked(message.id);
 
-                return MessageBubble(
-                  message: message,
-                  isMarkedAsClue: isClue,
-                  contactName: contact?.fullName,
-                  onLongPress: () =>
-                      _showClueDialog(context, message, isClue, gameState),
-                  onImageTap: message.imageUrl != null
-                      ? () {
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.photoViewer,
-                            arguments: {
-                              'photoId': message.imageUrl,
-                              'photoIndex': 0,
-                            },
-                          );
-                        }
-                      : null,
+                // Determine if we should show sender name
+                // Show when it's the first message or sender changed from previous
+                final bool showSenderName;
+                if (msgIndex == 0) {
+                  showSenderName = true;
+                } else {
+                  final prevMessage = messages[msgIndex - 1];
+                  showSenderName = prevMessage.senderId != message.senderId;
+                }
+
+                // Determine if we should show a date separator
+                // Show when date changes from the previous message
+                Widget? dateSeparator;
+                if (msgIndex == 0) {
+                  dateSeparator = _buildDateSeparator(message.timestamp);
+                } else {
+                  final prevMessage = messages[msgIndex - 1];
+                  if (!_isSameDay(prevMessage.timestamp, message.timestamp)) {
+                    dateSeparator = _buildDateSeparator(message.timestamp);
+                  }
+                }
+
+                return Column(
+                  children: [
+                    if (dateSeparator != null) dateSeparator,
+                    MessageBubble(
+                      message: message,
+                      isMarkedAsClue: isClue,
+                      contactName: contact?.firstName ?? contact?.fullName,
+                      showSenderName: showSenderName,
+                      onLongPress: () => _showClueDialog(
+                        context,
+                        message,
+                        isClue,
+                        gameState,
+                        message.isFromOwner
+                            ? 'You'
+                            : contact?.firstName ?? 'Unknown',
+                      ),
+                      onImageTap: message.imageUrl != null
+                          ? () {
+                              Navigator.pushNamed(
+                                context,
+                                AppRoutes.photoViewer,
+                                arguments: {
+                                  'photoId': message.imageUrl,
+                                  'photoIndex': 0,
+                                },
+                              );
+                            }
+                          : null,
+                    ),
+                  ],
                 );
               },
             ),
@@ -131,6 +169,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     dynamic message,
     bool isClue,
     GameStateProvider gameState,
+    String senderName,
   ) {
     HapticService.mediumTap();
 
@@ -199,9 +238,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     id: message.id,
                     type: ClueType.message,
                     sourceId: message.id,
-                    preview: message.content.length > 50
-                        ? '${message.content.substring(0, 50)}...'
-                        : message.content,
+                    preview:
+                        '$senderName: ${message.content.length > 80 ? '${message.content.substring(0, 80)}...' : message.content}',
                     foundAt: DateTime.now(),
                   );
                   gameState.addClue(clue);
@@ -224,6 +262,49 @@ class _ConversationScreenState extends State<ConversationScreen> {
             const SizedBox(height: 16),
           ],
         ),
+      ),
+    );
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  Widget _buildDateSeparator(DateTime date) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    final label = '${months[date.month - 1]} ${date.day}, ${date.year}';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: AppColors.surfaceLight, height: 1)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              label,
+              style: GoogleFonts.roboto(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textTertiary,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(color: AppColors.surfaceLight, height: 1)),
+        ],
       ),
     );
   }

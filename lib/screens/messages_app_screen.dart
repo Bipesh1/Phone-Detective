@@ -58,6 +58,8 @@ class MessagesAppScreen extends StatelessWidget {
                   contactName: contact?.fullName ?? 'Unknown',
                   contactInitials: contact?.initials ?? '?',
                   avatarColor: contact?.avatarColor ?? AppColors.primary,
+                  relationship: contact?.relationship,
+                  messageCount: conv.messages.length,
                   onTap: () {
                     HapticService.lightTap();
                     Navigator.pushNamed(
@@ -105,6 +107,8 @@ class _ConversationTile extends StatelessWidget {
   final String contactInitials;
   final Color avatarColor;
   final VoidCallback onTap;
+  final String? relationship;
+  final int messageCount;
 
   const _ConversationTile({
     required this.conversation,
@@ -112,6 +116,8 @@ class _ConversationTile extends StatelessWidget {
     required this.contactInitials,
     required this.avatarColor,
     required this.onTap,
+    this.relationship,
+    this.messageCount = 0,
   });
 
   @override
@@ -155,15 +161,29 @@ class _ConversationTile extends StatelessWidget {
       title: Row(
         children: [
           Expanded(
-            child: Text(
-              contactName,
-              style: GoogleFonts.roboto(
-                fontSize: 16,
-                fontWeight: hasUnread ? FontWeight.w600 : FontWeight.normal,
-                color: AppColors.textPrimary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  contactName,
+                  style: GoogleFonts.roboto(
+                    fontSize: 16,
+                    fontWeight: hasUnread ? FontWeight.w600 : FontWeight.normal,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (relationship != null)
+                  Text(
+                    relationship!,
+                    style: GoogleFonts.roboto(
+                      fontSize: 11,
+                      color: AppColors.textTertiary,
+                    ),
+                    maxLines: 1,
+                  ),
+              ],
             ),
           ),
           Text(
@@ -184,8 +204,8 @@ class _ConversationTile extends StatelessWidget {
                 lastMessage?.isDeleted == true
                     ? '[Message deleted]'
                     : lastMessage?.type == MessageType.image
-                    ? '📷 Photo'
-                    : lastMessage?.content ?? '',
+                        ? '📷 Photo'
+                        : lastMessage?.content ?? '',
                 style: GoogleFonts.roboto(
                   fontSize: 14,
                   color: hasUnread
@@ -226,9 +246,8 @@ class _ConversationTile extends StatelessWidget {
     final msgDate = DateTime(time.year, time.month, time.day);
 
     if (msgDate == today) {
-      final hour = time.hour > 12
-          ? time.hour - 12
-          : (time.hour == 0 ? 12 : time.hour);
+      final hour =
+          time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
       final minute = time.minute.toString().padLeft(2, '0');
       final period = time.hour >= 12 ? 'PM' : 'AM';
       return '$hour:$minute $period';

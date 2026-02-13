@@ -20,6 +20,7 @@ import '../screens/detective_journal_screen.dart';
 import '../screens/solution_screen.dart';
 import '../screens/case_complete_screen.dart';
 import '../screens/case_intro_screen.dart';
+import '../screens/hacking_simulator_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -41,6 +42,7 @@ class AppRoutes {
   static const String solution = '/solution';
   static const String caseComplete = '/case-complete';
   static const String caseIntro = '/case-intro';
+  static const String hackingSimulator = '/hacking-simulator';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -116,6 +118,13 @@ class AppRoutes {
 
       case caseIntro:
         return _buildPageRoute(const CaseIntroScreen(), settings);
+
+      case hackingSimulator:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return _buildPageRoute(
+          HackingSimulatorScreen(targetName: args?['targetName'] ?? 'DEVICE'),
+          settings,
+        );
 
       case caseComplete:
         final args = settings.arguments as Map<String, dynamic>?;

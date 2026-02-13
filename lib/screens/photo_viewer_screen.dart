@@ -22,34 +22,46 @@ class PhotoViewerScreen extends StatefulWidget {
   State<PhotoViewerScreen> createState() => _PhotoViewerScreenState();
 }
 
-class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
+class _PhotoViewerScreenState extends State<PhotoViewerScreen>
+    with TickerProviderStateMixin {
   late PageController _pageController;
   late int _currentIndex;
   bool _showOverlay = true;
   bool _showMetadata = false;
   final TransformationController _transformController =
       TransformationController();
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.photoIndex;
     _pageController = PageController(initialPage: _currentIndex);
+
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     _transformController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final gameState = Provider.of<GameStateProvider>(context);
-    final photos = gameState.currentCase.photos
-        .where((p) => !p.isHidden)
-        .toList();
+    final photos =
+        gameState.currentCase.photos.where((p) => !p.isHidden).toList();
     final currentPhoto = photos.isNotEmpty && _currentIndex < photos.length
         ? photos[_currentIndex]
         : null;
@@ -82,7 +94,9 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                     child: _PhotoPlaceholder(
                       index: index,
                       hotspots: photo.hotspots,
-                      onHotspotTap: (hotspot) => _showHotspotDetail(hotspot),
+                      pulseAnimation: _pulseAnimation,
+                      onHotspotTap: (hotspot) =>
+                          _showHotspotDetail(hotspot, gameState),
                     ),
                   ),
                 );
@@ -122,21 +136,55 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      Text(
-                        '${_currentIndex + 1} of ${photos.length}',
-                        style: GoogleFonts.roboto(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${_currentIndex + 1} of ${photos.length}',
+                            style: GoogleFonts.roboto(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (currentPhoto?.title != null)
+                            Text(
+                              currentPhoto!.title!,
+                              style: GoogleFonts.roboto(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                        ],
                       ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.more_horiz,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        onPressed: () {},
-                      ),
+                      // Hotspot count badge
+                      currentPhoto != null && currentPhoto.hotspots.isNotEmpty
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.8),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.search,
+                                      color: Colors.white, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${currentPhoto.hotspots.length}',
+                                    style: GoogleFonts.roboto(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : const SizedBox(width: 48),
                     ],
                   ),
                 ),
@@ -200,7 +248,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                                   content: Text(
                                     currentPhoto.hotspots.isEmpty
                                         ? 'No hidden details found'
-                                        : 'Tap highlighted areas to inspect',
+                                        : '${currentPhoto.hotspots.length} discoverable area${currentPhoto.hotspots.length > 1 ? 's' : ''} — tap the pulsing circles',
                                   ),
                                   duration: const Duration(seconds: 2),
                                 ),
@@ -259,11 +307,13 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
     }
   }
 
-  void _showHotspotDetail(dynamic hotspot) {
+  void _showHotspotDetail(dynamic hotspot, GameStateProvider gameState) {
     HapticService.mediumTap();
+    final isClue = gameState.isClueMarked(hotspot.id);
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.backgroundSecondary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
@@ -279,17 +329,75 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
             ),
           ],
         ),
-        content: Text(
-          hotspot.description,
-          style: GoogleFonts.roboto(
-            color: AppColors.textSecondary,
-            fontSize: 15,
-            height: 1.5,
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              hotspot.description,
+              style: GoogleFonts.roboto(
+                color: AppColors.textSecondary,
+                fontSize: 15,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  if (isClue) {
+                    gameState.removeClue(hotspot.id);
+                  } else {
+                    final clue = Clue(
+                      id: hotspot.id,
+                      type: ClueType.photo,
+                      sourceId: hotspot.id,
+                      preview: hotspot.description.length > 80
+                          ? '${hotspot.description.substring(0, 80)}...'
+                          : hotspot.description,
+                      foundAt: DateTime.now(),
+                    );
+                    gameState.addClue(clue);
+                    HapticService.heavyTap();
+                  }
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isClue
+                            ? 'Removed from clues'
+                            : 'Added to Detective Journal',
+                      ),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                },
+                icon: Icon(
+                  isClue ? Icons.bookmark_remove : Icons.bookmark_add,
+                  color: isClue ? Colors.white : Colors.black87,
+                ),
+                label: Text(
+                  isClue ? 'Remove from Clues' : 'Mark as Clue',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    color: isClue ? Colors.white : Colors.black87,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isClue ? AppColors.danger : AppColors.clue,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               'Close',
               style: GoogleFonts.roboto(color: AppColors.primary),
@@ -305,11 +413,13 @@ class _PhotoPlaceholder extends StatelessWidget {
   final int index;
   final List<dynamic> hotspots;
   final Function(dynamic) onHotspotTap;
+  final Animation<double> pulseAnimation;
 
   const _PhotoPlaceholder({
     required this.index,
     required this.hotspots,
     required this.onHotspotTap,
+    required this.pulseAnimation,
   });
 
   @override
@@ -343,25 +453,40 @@ class _PhotoPlaceholder extends StatelessWidget {
             ),
           ),
         ),
-        // Hotspots
+        // Pulsing Hotspots
         ...hotspots.map(
           (hotspot) => Positioned(
-            left: hotspot.x * MediaQuery.of(context).size.width - 20,
-            top: hotspot.y * MediaQuery.of(context).size.height - 20,
+            left: hotspot.x * MediaQuery.of(context).size.width - 22,
+            top: hotspot.y * MediaQuery.of(context).size.height - 22,
             child: GestureDetector(
               onTap: () => onHotspotTap(hotspot),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.clue.withValues(alpha: 0.8),
-                    width: 2,
-                  ),
-                  color: AppColors.clue.withValues(alpha: 0.2),
-                ),
-                child: Icon(Icons.search, color: AppColors.clue, size: 20),
+              child: AnimatedBuilder(
+                animation: pulseAnimation,
+                builder: (context, child) {
+                  return Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.clue
+                            .withValues(alpha: pulseAnimation.value),
+                        width: 2.5,
+                      ),
+                      color: AppColors.clue
+                          .withValues(alpha: pulseAnimation.value * 0.25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.clue
+                              .withValues(alpha: pulseAnimation.value * 0.4),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Icon(Icons.search, color: AppColors.clue, size: 20),
+                  );
+                },
               ),
             ),
           ),
@@ -438,6 +563,19 @@ class _MetadataSection extends StatelessWidget {
               icon: Icons.label,
               label: 'Title',
               value: photo.title!,
+            ),
+          if (photo.description != null)
+            _MetadataRow(
+              icon: Icons.notes,
+              label: 'Description',
+              value: photo.description!,
+            ),
+          if (photo.hotspots.isNotEmpty)
+            _MetadataRow(
+              icon: Icons.search,
+              label: 'Discoverable',
+              value:
+                  '${photo.hotspots.length} area${photo.hotspots.length > 1 ? 's' : ''} to inspect',
             ),
         ],
       ),

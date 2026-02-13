@@ -23,7 +23,7 @@ class Message {
     this.isRead = true,
   });
 
-  bool get isFromOwner => senderId == 'owner';
+  bool get isFromOwner => senderId == 'owner' || senderId == 'me';
 
   Map<String, dynamic> toJson() {
     return {
@@ -41,17 +41,14 @@ class Message {
 
   factory Message.fromJson(Map<String, dynamic> json) {
     return Message(
-      id:
-          (json['id'] as String?) ??
+      id: (json['id'] as String?) ??
           DateTime.now().millisecondsSinceEpoch.toString(),
       conversationId: (json['conversationId'] as String?) ?? '',
       senderId: (json['senderId'] as String?) ?? 'unknown',
-      content:
-          (json['content'] as String?) ??
+      content: (json['content'] as String?) ??
           (json['text'] as String?) ??
           '', // Handle 'text' fallback
-      timestamp:
-          DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
           DateTime.now(),
       type: MessageType.values.firstWhere(
         (e) => e.name == json['type'],
@@ -94,8 +91,7 @@ class Conversation {
     return Conversation(
       id: (json['id'] as String?) ?? 'unknown',
       contactId: (json['contactId'] as String?) ?? '',
-      messages:
-          (json['messages'] as List?)
+      messages: (json['messages'] as List?)
               ?.map((m) => Message.fromJson(m as Map<String, dynamic>))
               .toList() ??
           [],

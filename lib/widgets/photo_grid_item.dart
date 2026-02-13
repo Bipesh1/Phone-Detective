@@ -1,6 +1,7 @@
 // Phone Detective - Photo Grid Item Widget
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../utils/constants.dart';
 
 class PhotoGridItem extends StatelessWidget {
@@ -9,6 +10,9 @@ class PhotoGridItem extends StatelessWidget {
   final bool isMarkedAsClue;
   final VoidCallback onTap;
   final String? heroTag;
+  final String? title;
+  final String? dateTaken;
+  final bool hasHotspots;
 
   const PhotoGridItem({
     super.key,
@@ -17,6 +21,9 @@ class PhotoGridItem extends StatelessWidget {
     this.isMarkedAsClue = false,
     required this.onTap,
     this.heroTag,
+    this.title,
+    this.dateTaken,
+    this.hasHotspots = false,
   });
 
   @override
@@ -26,6 +33,7 @@ class PhotoGridItem extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(8),
           border: isMarkedAsClue
               ? Border.all(color: AppColors.clue, width: 2)
               : null,
@@ -38,6 +46,7 @@ class PhotoGridItem extends StatelessWidget {
                 ]
               : null,
         ),
+        clipBehavior: Clip.antiAlias,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -61,7 +70,71 @@ class PhotoGridItem extends StatelessWidget {
                 ),
               ),
             ),
-            // Clue badge
+            // Bottom gradient with title & date
+            if (title != null || dateTaken != null)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(8, 20, 8, 6),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.85),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (title != null)
+                        Text(
+                          title!,
+                          style: GoogleFonts.roboto(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      if (dateTaken != null)
+                        Text(
+                          dateTaken!,
+                          style: GoogleFonts.roboto(
+                            color: Colors.white70,
+                            fontSize: 9,
+                          ),
+                          maxLines: 1,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            // Hotspot indicator (top-left)
+            if (hasHotspots)
+              Positioned(
+                top: 4,
+                left: 4,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.search,
+                    color: Colors.white,
+                    size: 12,
+                  ),
+                ),
+              ),
+            // Clue badge (top-right)
             if (isMarkedAsClue)
               Positioned(
                 top: 4,

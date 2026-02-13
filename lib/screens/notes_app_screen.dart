@@ -8,6 +8,7 @@ import '../widgets/note_card.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
+import '../widgets/clue_hint_banner.dart';
 
 class NotesAppScreen extends StatelessWidget {
   const NotesAppScreen({super.key});
@@ -50,33 +51,40 @@ class NotesAppScreen extends StatelessWidget {
       ),
       body: notes.isEmpty
           ? _EmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              itemCount: notes.length,
-              itemBuilder: (context, index) {
-                final note = notes[index];
-                final isClue = gameState.isClueMarked(note.id);
-                final isUnlocked =
-                    !note.isLocked || gameState.isNoteUnlocked(note.id);
+          : Column(
+              children: [
+                ClueHintBanner(clueCount: gameState.currentClues.length),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    itemCount: notes.length,
+                    itemBuilder: (context, index) {
+                      final note = notes[index];
+                      final isClue = gameState.isClueMarked(note.id);
+                      final isUnlocked =
+                          !note.isLocked || gameState.isNoteUnlocked(note.id);
 
-                return NoteCard(
-                  note: note,
-                  isMarkedAsClue: isClue,
-                  isUnlocked: isUnlocked,
-                  onTap: () {
-                    HapticService.lightTap();
-                    if (note.isLocked && !isUnlocked) {
-                      _showPasswordDialog(context, note, gameState);
-                    } else {
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.noteDetail,
-                        arguments: {'noteId': note.id},
+                      return NoteCard(
+                        note: note,
+                        isMarkedAsClue: isClue,
+                        isUnlocked: isUnlocked,
+                        onTap: () {
+                          HapticService.lightTap();
+                          if (note.isLocked && !isUnlocked) {
+                            _showPasswordDialog(context, note, gameState);
+                          } else {
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.noteDetail,
+                              arguments: {'noteId': note.id},
+                            );
+                          }
+                        },
                       );
-                    }
-                  },
-                );
-              },
+                    },
+                  ),
+                ),
+              ],
             ),
     );
   }

@@ -1,6 +1,7 @@
 // Phone Detective - Message Bubble Widget
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/message.dart';
 import '../utils/constants.dart';
 
@@ -10,6 +11,7 @@ class MessageBubble extends StatelessWidget {
   final VoidCallback? onLongPress;
   final VoidCallback? onImageTap;
   final String? contactName;
+  final bool showSenderName;
 
   const MessageBubble({
     super.key,
@@ -18,6 +20,7 @@ class MessageBubble extends StatelessWidget {
     this.onLongPress,
     this.onImageTap,
     this.contactName,
+    this.showSenderName = true,
   });
 
   @override
@@ -27,48 +30,78 @@ class MessageBubble extends StatelessWidget {
     return GestureDetector(
       onLongPress: onLongPress,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: Row(
-          mainAxisAlignment: isFromOwner
-              ? MainAxisAlignment.end
-              : MainAxisAlignment.start,
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: showSenderName ? 8 : 2,
+          bottom: 2,
+        ),
+        child: Column(
+          crossAxisAlignment:
+              isFromOwner ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            if (!isFromOwner) const SizedBox(width: 8),
-            Flexible(
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.75,
+            // Sender name label
+            if (showSenderName)
+              Padding(
+                padding: EdgeInsets.only(
+                  left: isFromOwner ? 0 : 12,
+                  right: isFromOwner ? 12 : 0,
+                  bottom: 4,
                 ),
-                decoration: BoxDecoration(
-                  color: isFromOwner
-                      ? AppColors.messageBubbleSent
-                      : AppColors.messageBubbleReceived,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(18),
-                    topRight: const Radius.circular(18),
-                    bottomLeft: Radius.circular(isFromOwner ? 18 : 4),
-                    bottomRight: Radius.circular(isFromOwner ? 4 : 18),
+                child: Text(
+                  isFromOwner ? 'You' : (contactName ?? 'Unknown'),
+                  style: GoogleFonts.roboto(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isFromOwner
+                        ? AppColors.textTertiary
+                        : AppColors.primary,
                   ),
-                  border: isMarkedAsClue
-                      ? Border.all(color: AppColors.clue, width: 2)
-                      : null,
-                  boxShadow: isMarkedAsClue
-                      ? [
-                          BoxShadow(
-                            color: AppColors.clue.withValues(alpha: 0.4),
-                            blurRadius: 8,
-                            spreadRadius: 1,
-                          ),
-                        ]
-                      : null,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: _buildContent(),
                 ),
               ),
+            // Message bubble
+            Row(
+              mainAxisAlignment:
+                  isFromOwner ? MainAxisAlignment.end : MainAxisAlignment.start,
+              children: [
+                if (!isFromOwner) const SizedBox(width: 4),
+                Flexible(
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isFromOwner
+                          ? AppColors.messageBubbleSent
+                          : AppColors.messageBubbleReceived,
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(18),
+                        topRight: const Radius.circular(18),
+                        bottomLeft: Radius.circular(isFromOwner ? 18 : 4),
+                        bottomRight: Radius.circular(isFromOwner ? 4 : 18),
+                      ),
+                      border: isMarkedAsClue
+                          ? Border.all(color: AppColors.clue, width: 2)
+                          : null,
+                      boxShadow: isMarkedAsClue
+                          ? [
+                              BoxShadow(
+                                color: AppColors.clue.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: _buildContent(),
+                    ),
+                  ),
+                ),
+                if (isFromOwner) const SizedBox(width: 4),
+              ],
             ),
-            if (isFromOwner) const SizedBox(width: 8),
           ],
         ),
       ),
@@ -76,6 +109,8 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _buildContent() {
+    final isFromOwner = message.isFromOwner;
+
     if (message.isDeleted) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -133,7 +168,7 @@ class MessageBubble extends StatelessWidget {
           Text(
             message.content,
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: isFromOwner ? Colors.white : AppColors.textPrimary,
               fontSize: 15,
               decoration: message.type == MessageType.link
                   ? TextDecoration.underline
@@ -147,9 +182,7 @@ class MessageBubble extends StatelessWidget {
               Text(
                 _formatTime(message.timestamp),
                 style: TextStyle(
-                  color: message.isFromOwner
-                      ? Colors.white70
-                      : AppColors.textTertiary,
+                  color: isFromOwner ? Colors.white70 : AppColors.textTertiary,
                   fontSize: 11,
                 ),
               ),
@@ -165,9 +198,8 @@ class MessageBubble extends StatelessWidget {
   }
 
   String _formatTime(DateTime time) {
-    final hour = time.hour > 12
-        ? time.hour - 12
-        : (time.hour == 0 ? 12 : time.hour);
+    final hour =
+        time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
     final minute = time.minute.toString().padLeft(2, '0');
     final period = time.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $period';
