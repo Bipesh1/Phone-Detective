@@ -181,7 +181,7 @@ class _CaseCompleteScreenState extends State<CaseCompleteScreen>
                               gameState.startCase(nextCase);
                               Navigator.pushReplacementNamed(
                                 context,
-                                AppRoutes.phoneHome,
+                                AppRoutes.caseIntro,
                               );
                             } else {
                               Navigator.pushReplacementNamed(

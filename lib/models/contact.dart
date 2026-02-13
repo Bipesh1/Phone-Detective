@@ -45,10 +45,25 @@ class Contact {
   }
 
   factory Contact.fromJson(Map<String, dynamic> json) {
+    String first = json['firstName'] as String? ?? '';
+    String last = json['lastName'] as String? ?? '';
+
+    // Fallback if firstName/lastName are missing but 'name' exists (Supabase/Log discrepancy)
+    if (first.isEmpty && last.isEmpty && json['name'] != null) {
+      final nameStr = json['name'].toString();
+      final parts = nameStr.split(' ');
+      if (parts.isNotEmpty) {
+        first = parts.first;
+        if (parts.length > 1) {
+          last = parts.sublist(1).join(' ');
+        }
+      }
+    }
+
     return Contact(
-      id: json['id'] as String,
-      firstName: json['firstName'] as String,
-      lastName: json['lastName'] as String,
+      id: (json['id'] as String?) ?? 'unknown',
+      firstName: first,
+      lastName: last,
       phoneNumber: json['phoneNumber'] as String?,
       email: json['email'] as String?,
       relationship: json['relationship'] as String?,

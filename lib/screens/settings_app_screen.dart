@@ -93,6 +93,14 @@ class SettingsAppScreen extends StatelessWidget {
                 title: 'Version',
                 subtitle: '1.0.0',
               ),
+              _SettingsTile(
+                icon: Icons.cloud,
+                title: 'Data Source',
+                subtitle: gameState.isRemote
+                    ? 'Remote Database (Live)'
+                    : 'Local Storage (Offline)',
+                textColor: gameState.isRemote ? Colors.green : Colors.orange,
+              ),
             ],
           ),
           const SizedBox(height: 40),

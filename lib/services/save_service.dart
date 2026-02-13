@@ -12,6 +12,7 @@ class SaveService {
   static const String _keyPlayerNotes = 'player_notes';
   static const String _keyCaseStartTime = 'case_start_time';
   static const String _keyUnlockedNotes = 'unlocked_notes';
+  static const String _keyTutorialCompleted = 'tutorial_completed';
 
   SharedPreferences? _prefs;
 
@@ -127,5 +128,14 @@ class SaveService {
   // ============ CHECK SAVE EXISTS ============
   bool hasSaveData() {
     return getCurrentCase() != null;
+  }
+
+  // ============ TUTORIAL ============
+  Future<void> saveTutorialCompleted(bool completed) async {
+    await _prefs?.setBool(_keyTutorialCompleted, completed);
+  }
+
+  bool isTutorialCompleted() {
+    return _prefs?.getBool(_keyTutorialCompleted) ?? false;
   }
 }

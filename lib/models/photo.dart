@@ -60,13 +60,15 @@ class Photo {
 
   factory Photo.fromJson(Map<String, dynamic> json) {
     return Photo(
-      id: json['id'] as String,
+      id: (json['id'] as String?) ?? 'unknown',
       title: json['title'] as String?,
       description: json['description'] as String?,
-      dateTaken: DateTime.parse(json['dateTaken'] as String),
+      dateTaken:
+          DateTime.tryParse(json['dateTaken'] as String? ?? '') ??
+          DateTime.now(),
       location: json['location'] as String?,
-      latitude: json['latitude'] as double?,
-      longitude: json['longitude'] as double?,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
       hotspots:
           (json['hotspots'] as List?)
               ?.map((h) => PhotoHotspot.fromJson(h as Map<String, dynamic>))

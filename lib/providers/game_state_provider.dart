@@ -3,12 +3,16 @@
 import 'package:flutter/foundation.dart';
 
 import '../services/save_service.dart';
+import '../services/supabase_service.dart';
 import '../data/cases/all_cases.dart';
 
 class GameStateProvider extends ChangeNotifier {
   final SaveService _saveService = SaveService();
 
+  List<CaseData> _allCases = []; // Start empty, load from DB
   int _currentCaseNumber = 1;
+  int _tutorialStep = 0; // 0: Inactive, 1+: Active Steps
+
   Set<int> _solvedCases = {};
   List<Clue> _currentClues = [];
   Set<String> _currentSuspects = {};
@@ -16,8 +20,10 @@ class GameStateProvider extends ChangeNotifier {
   DateTime? _caseStartTime;
   Set<String> _unlockedNotes = {};
   bool _isInitialized = false;
+  bool _isRemote = false;
 
   // Getters
+  List<CaseData> get cases => _allCases;
   int get currentCaseNumber => _currentCaseNumber;
   Set<int> get solvedCases => _solvedCases;
   List<Clue> get currentClues => _currentClues;
@@ -26,9 +32,18 @@ class GameStateProvider extends ChangeNotifier {
   DateTime? get caseStartTime => _caseStartTime;
   Set<String> get unlockedNotes => _unlockedNotes;
   bool get isInitialized => _isInitialized;
+  bool get isRemote => _isRemote;
   bool get hasSaveData => _saveService.hasSaveData();
 
-  CaseData get currentCase => allCases[_currentCaseNumber - 1];
+  CaseData get currentCase {
+    // Find case by number
+    try {
+      return _allCases.firstWhere((c) => c.caseNumber == _currentCaseNumber);
+    } catch (_) {
+      // Fallback to first case if not found
+      return _allCases.isNotEmpty ? _allCases[0] : allCases[0];
+    }
+  }
 
   Duration get timePlayed {
     if (_caseStartTime == null) return Duration.zero;
@@ -38,9 +53,42 @@ class GameStateProvider extends ChangeNotifier {
   // Initialization
   Future<void> init() async {
     await _saveService.init();
+    await _loadRemoteCases(); // Fetch new cases
     await _loadSavedState();
+    checkTutorial();
     _isInitialized = true;
     notifyListeners();
+  }
+
+  Future<void> _loadRemoteCases() async {
+    try {
+      final remoteCases = await SupabaseService().getCases();
+      if (remoteCases.isNotEmpty) {
+        _allCases = remoteCases;
+        _isRemote = true;
+      } else {
+        // Remote returned empty (maybe no cases in DB yet), fallback to static
+        print('Remote DB empty, falling back to static cases');
+        _allCases = [...allCases];
+        _isRemote = false;
+      }
+
+      // Sort by case number
+      _allCases.sort((a, b) => a.caseNumber.compareTo(b.caseNumber));
+
+      // If we have cases and current case is invalid, reset to first
+      if (_allCases.isNotEmpty &&
+          _allCases.every((c) => c.caseNumber != _currentCaseNumber)) {
+        _currentCaseNumber = _allCases.first.caseNumber;
+      }
+    } catch (e) {
+      print('Failed to load remote cases: $e');
+      // Fallback to static cases if remote fails
+      if (_allCases.isEmpty) {
+        _allCases = [...allCases];
+        _isRemote = false;
+      }
+    }
   }
 
   Future<void> _loadSavedState() async {
@@ -73,6 +121,7 @@ class GameStateProvider extends ChangeNotifier {
     }
 
     await _saveService.saveCurrentCase(caseNumber);
+    checkTutorial();
     notifyListeners();
   }
 
@@ -182,6 +231,36 @@ class GameStateProvider extends ChangeNotifier {
     _playerNotes = '';
     _caseStartTime = null;
     _unlockedNotes = {};
+    _tutorialStep = 0; // Ensure tutorial step is reset
+    notifyListeners();
+  }
+
+  // Tutorial Management
+  int get tutorialStep => _tutorialStep;
+  bool get isTutorialActive => _tutorialStep > 0;
+
+  void checkTutorial() {
+    // Start tutorial if Case 1 and not completed
+    if (_currentCaseNumber == 1 &&
+        !_saveService.isTutorialCompleted() &&
+        _tutorialStep == 0) {
+      startTutorial();
+    }
+  }
+
+  void startTutorial() {
+    _tutorialStep = 1;
+    notifyListeners();
+  }
+
+  void nextTutorialStep() {
+    _tutorialStep++;
+    notifyListeners();
+  }
+
+  Future<void> endTutorial() async {
+    _tutorialStep = 0;
+    await _saveService.saveTutorialCompleted(true);
     notifyListeners();
   }
 }

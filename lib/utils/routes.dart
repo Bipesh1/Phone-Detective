@@ -19,6 +19,7 @@ import '../screens/settings_app_screen.dart';
 import '../screens/detective_journal_screen.dart';
 import '../screens/solution_screen.dart';
 import '../screens/case_complete_screen.dart';
+import '../screens/case_intro_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -39,6 +40,7 @@ class AppRoutes {
   static const String detectiveJournal = '/detective-journal';
   static const String solution = '/solution';
   static const String caseComplete = '/case-complete';
+  static const String caseIntro = '/case-intro';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -111,6 +113,9 @@ class AppRoutes {
 
       case solution:
         return _buildPageRoute(const SolutionScreen(), settings);
+
+      case caseIntro:
+        return _buildPageRoute(const CaseIntroScreen(), settings);
 
       case caseComplete:
         final args = settings.arguments as Map<String, dynamic>?;

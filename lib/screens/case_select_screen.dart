@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/game_state_provider.dart';
-import '../data/cases/all_cases.dart';
+import '../models/case_data.dart';
+// import '../data/cases/all_cases.dart'; // Removed to prevent accidental usage
 
 import '../utils/constants.dart';
 import '../utils/routes.dart';
@@ -42,9 +43,9 @@ class _CaseSelectScreenState extends State<CaseSelectScreen> {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: allCases.length,
+        itemCount: gameState.cases.length,
         itemBuilder: (context, index) {
-          final caseData = allCases[index];
+          final caseData = gameState.cases[index];
           final isUnlocked = gameState.isCaseUnlocked(caseData.caseNumber);
           final isSolved = gameState.isCaseSolved(caseData.caseNumber);
           final cluesFound = gameState.currentCaseNumber == caseData.caseNumber
@@ -221,7 +222,7 @@ class _CaseSelectScreenState extends State<CaseSelectScreen> {
                           Navigator.pop(context);
                           Navigator.pushReplacementNamed(
                             context,
-                            AppRoutes.phoneHome,
+                            AppRoutes.caseIntro,
                           );
                         },
                         style: ElevatedButton.styleFrom(

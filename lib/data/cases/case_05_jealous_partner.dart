@@ -10,6 +10,7 @@ final case05JealousPartner = CaseData(
   description: 'A domestic incident with a twist. Is everything as it seems?',
   scenario:
       'Ryan Miller\'s wife accused him of having an affair after finding suspicious texts and calls to an "unknown number." There was a confrontation. But the evidence tells a different story. His phone holds the truth.',
+  objective: 'Investigate the suspicious activity and uncover the truth.',
   difficulty: CaseDifficulty.medium,
   themeColor: const Color(0xFFD81B60),
   totalClues: 6,
@@ -265,5 +266,3 @@ final case05JealousPartner = CaseData(
     ],
   ),
 );
-
-

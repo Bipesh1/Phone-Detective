@@ -41,11 +41,18 @@ class Message {
 
   factory Message.fromJson(Map<String, dynamic> json) {
     return Message(
-      id: json['id'] as String,
-      conversationId: json['conversationId'] as String,
-      senderId: json['senderId'] as String,
-      content: json['content'] as String,
-      timestamp: DateTime.parse(json['timestamp'] as String),
+      id:
+          (json['id'] as String?) ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
+      conversationId: (json['conversationId'] as String?) ?? '',
+      senderId: (json['senderId'] as String?) ?? 'unknown',
+      content:
+          (json['content'] as String?) ??
+          (json['text'] as String?) ??
+          '', // Handle 'text' fallback
+      timestamp:
+          DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+          DateTime.now(),
       type: MessageType.values.firstWhere(
         (e) => e.name == json['type'],
         orElse: () => MessageType.text,
@@ -85,11 +92,13 @@ class Conversation {
 
   factory Conversation.fromJson(Map<String, dynamic> json) {
     return Conversation(
-      id: json['id'] as String,
-      contactId: json['contactId'] as String,
-      messages: (json['messages'] as List)
-          .map((m) => Message.fromJson(m as Map<String, dynamic>))
-          .toList(),
+      id: (json['id'] as String?) ?? 'unknown',
+      contactId: (json['contactId'] as String?) ?? '',
+      messages:
+          (json['messages'] as List?)
+              ?.map((m) => Message.fromJson(m as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 }

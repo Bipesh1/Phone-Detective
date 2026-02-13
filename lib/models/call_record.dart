@@ -75,15 +75,17 @@ class CallRecord {
 
   factory CallRecord.fromJson(Map<String, dynamic> json) {
     return CallRecord(
-      id: json['id'] as String,
-      contactId: json['contactId'] as String,
-      phoneNumber: json['phoneNumber'] as String,
+      id: (json['id'] as String?) ?? 'unknown',
+      contactId: (json['contactId'] as String?) ?? '',
+      phoneNumber: (json['phoneNumber'] as String?) ?? 'Unknown',
       type: CallType.values.firstWhere(
         (e) => e.name == json['type'],
         orElse: () => CallType.incoming,
       ),
-      timestamp: DateTime.parse(json['timestamp'] as String),
-      duration: Duration(seconds: json['duration'] as int? ?? 0),
+      timestamp:
+          DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+          DateTime.now(),
+      duration: Duration(seconds: (json['duration'] as num?)?.toInt() ?? 0),
       isRead: json['isRead'] as bool? ?? true,
     );
   }

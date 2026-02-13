@@ -11,6 +11,7 @@ final case04LockedRoom = CaseData(
       'A woman found dead in a locked apartment. Was it suicide or murder?',
   scenario:
       'Victoria Lane was found dead in her locked apartment. The door was chained from inside. Police ruled it suicide, but her family suspects murder. This is her phone. The timestamps don\'t add up...',
+  objective: 'Determine if it was murder or suicide, and find the killer.',
   difficulty: CaseDifficulty.medium,
   themeColor: const Color(0xFF5D4037),
   totalClues: 7,
@@ -241,5 +242,3 @@ final case04LockedRoom = CaseData(
     ],
   ),
 );
-
-

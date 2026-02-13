@@ -11,9 +11,15 @@ final case01MissingHiker = CaseData(
       'A phone was found on a remote hiking trail. The owner, Sarah Chen, hasn\'t returned. Is it an accident or something more sinister?',
   scenario:
       'A ranger found this phone near Eagle Peak Trail. The owner, Sarah Chen, was part of a hiking group that set out three days ago. She\'s the only one who hasn\'t returned. The others claim they got separated, but their stories don\'t quite match up. Investigate the phone to find out what really happened.',
+  objective:
+      'Find out what happened to Sarah Miller and identify her location.',
   difficulty: CaseDifficulty.tutorial,
   themeColor: const Color(0xFF2E7D32),
   totalClues: 5,
+  hints: [
+    "Check the messages between the hiker and his friend. There might be a mention of a meeting spot.",
+    "Look closely at the photo from the hiking trail.",
+  ],
   contacts: [
     Contact(
       id: 'sarah',

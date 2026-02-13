@@ -11,6 +11,7 @@ final case09SerialPattern = CaseData(
       'A phone found at a crime scene belongs to someone obsessed with the victim.',
   scenario:
       'Three women have gone missing in the area. This phone was found near the latest disappearance. The owner has been watching someone for months. Find the pattern. Find the victims.',
+  objective: 'Connect the victims and identify the serial predator.',
   difficulty: CaseDifficulty.veryHard,
   themeColor: const Color(0xFF212121),
   totalClues: 10,
@@ -224,5 +225,3 @@ final case09SerialPattern = CaseData(
     ],
   ),
 );
-
-

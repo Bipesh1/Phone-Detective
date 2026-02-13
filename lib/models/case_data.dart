@@ -14,6 +14,7 @@ class CaseData {
   final String subtitle;
   final String description;
   final String scenario; // Intro text shown when starting case
+  final String objective; // Mission goal
   final CaseDifficulty difficulty;
   final List<Contact> contacts;
   final List<Conversation> conversations;
@@ -22,9 +23,10 @@ class CaseData {
   final List<CallRecord> callLog;
   final List<Email> emails;
   final CaseSolution solution;
-  final int totalClues;
+  final int totalClues; // Not in DB right now (set default or add column)
   final Color themeColor;
-  final String? wallpaper; // Optional case-themed wallpaper
+  final String? wallpaper; // Not in DB right now (null unless you add column)
+  final List<String> hints;
 
   const CaseData({
     required this.caseNumber,
@@ -32,6 +34,7 @@ class CaseData {
     required this.subtitle,
     required this.description,
     required this.scenario,
+    required this.objective,
     required this.difficulty,
     required this.contacts,
     required this.conversations,
@@ -43,6 +46,7 @@ class CaseData {
     required this.totalClues,
     this.themeColor = const Color(0xFF007AFF),
     this.wallpaper,
+    this.hints = const [],
   });
 
   Contact? getContact(String id) {
@@ -64,6 +68,90 @@ class CaseData {
   List<Message> getMessagesForContact(String contactId) {
     final conv = getConversation(contactId);
     return conv?.messages ?? [];
+  }
+
+  factory CaseData.fromJson(Map<String, dynamic> json) {
+    return CaseData(
+      caseNumber: json['case_number'] as int,
+      title: json['title'] as String,
+      subtitle: (json['subtitle'] as String?) ?? '',
+      description: (json['description'] as String?) ?? '',
+      scenario: (json['scenario'] as String?) ?? '',
+      objective: (json['objective'] as String?) ?? 'Solve the mystery.',
+
+      // DB has difficulty as integer
+      difficulty: _difficultyFromInt((json['difficulty'] as int?) ?? 1),
+
+      contacts: (json['contacts'] as List<dynamic>? ?? [])
+          .map((e) => Contact.fromJson(e as Map<String, dynamic>))
+          .toList(),
+
+      conversations: (json['conversations'] as List<dynamic>? ?? [])
+          .map((e) => Conversation.fromJson(e as Map<String, dynamic>))
+          .toList(),
+
+      photos: (json['photos'] as List<dynamic>? ?? [])
+          .map((e) => Photo.fromJson(e as Map<String, dynamic>))
+          .toList(),
+
+      notes: (json['notes'] as List<dynamic>? ?? [])
+          .map((e) => Note.fromJson(e as Map<String, dynamic>))
+          .toList(),
+
+      callLog: (json['call_log'] as List<dynamic>? ?? [])
+          .map((e) => CallRecord.fromJson(e as Map<String, dynamic>))
+          .toList(),
+
+      emails: (json['emails'] as List<dynamic>? ?? [])
+          .map((e) => Email.fromJson(e as Map<String, dynamic>))
+          .toList(),
+
+      solution: CaseSolution.fromJson(json['solution'] as Map<String, dynamic>),
+
+      // Column doesn't exist in your table; keep default for now
+      totalClues: 0,
+
+      // DB has theme_color_hex text
+      themeColor: _colorFromHex(json['theme_color_hex'] as String?),
+
+      // Column doesn't exist in your table
+      wallpaper: null,
+
+      hints: (json['hints'] as List<dynamic>? ?? []).cast<String>(),
+    );
+  }
+
+  static CaseDifficulty _difficultyFromInt(int v) {
+    switch (v) {
+      case 0:
+        return CaseDifficulty.tutorial;
+      case 1:
+        return CaseDifficulty.easy;
+      case 2:
+        return CaseDifficulty.medium;
+      case 3:
+        return CaseDifficulty.hard;
+      case 4:
+        return CaseDifficulty.veryHard;
+      default:
+        return CaseDifficulty.easy;
+    }
+  }
+
+  static Color _colorFromHex(String? hex) {
+    if (hex == null || hex.trim().isEmpty) return const Color(0xFF007AFF);
+
+    var h = hex.trim().replaceAll('#', '');
+    // allow "0xFF007AFF" too
+    if (h.startsWith('0x') || h.startsWith('0X')) {
+      h = h.substring(2);
+    }
+
+    // if only RGB given, add alpha
+    if (h.length == 6) h = 'FF$h';
+
+    final value = int.parse(h, radix: 16);
+    return Color(value);
   }
 }
 
@@ -132,6 +220,30 @@ class CaseSolution {
     required this.resolution,
     required this.options,
   });
+
+  factory CaseSolution.fromJson(Map<String, dynamic> json) {
+    return CaseSolution(
+      guiltyContactId: (json['guilty_contact_id'] as String?) ?? '',
+      motive: (json['motive'] as String?) ?? '',
+      method: (json['method'] as String?) ?? '',
+      keyClueIds: (json['key_clue_ids'] as List<dynamic>? ?? []).cast<String>(),
+      resolution: (json['resolution'] as String?) ?? '',
+      options: (json['options'] as List<dynamic>? ?? [])
+          .map((e) => SolutionOption.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'guilty_contact_id': guiltyContactId,
+      'motive': motive,
+      'method': method,
+      'key_clue_ids': keyClueIds,
+      'resolution': resolution,
+      'options': options.map((e) => e.toJson()).toList(),
+    };
+  }
 }
 
 class SolutionOption {
@@ -146,4 +258,22 @@ class SolutionOption {
     required this.isCorrect,
     required this.feedback,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'contact_id': contactId,
+      'label': label,
+      'is_correct': isCorrect,
+      'feedback': feedback,
+    };
+  }
+
+  factory SolutionOption.fromJson(Map<String, dynamic> json) {
+    return SolutionOption(
+      contactId: (json['contact_id'] as String?) ?? '',
+      label: (json['label'] as String?) ?? '',
+      isCorrect: (json['is_correct'] as bool?) ?? false,
+      feedback: (json['feedback'] as String?) ?? '',
+    );
+  }
 }

@@ -81,13 +81,15 @@ class Email {
 
   factory Email.fromJson(Map<String, dynamic> json) {
     return Email(
-      id: json['id'] as String,
-      senderId: json['senderId'] as String,
-      senderEmail: json['senderEmail'] as String,
-      senderName: json['senderName'] as String,
-      subject: json['subject'] as String,
-      body: json['body'] as String,
-      timestamp: DateTime.parse(json['timestamp'] as String),
+      id: (json['id'] as String?) ?? 'unknown',
+      senderId: (json['senderId'] as String?) ?? '',
+      senderEmail: (json['senderEmail'] as String?) ?? '',
+      senderName: (json['senderName'] as String?) ?? 'Unknown',
+      subject: (json['subject'] as String?) ?? '(No Subject)',
+      body: (json['body'] as String?) ?? '',
+      timestamp:
+          DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+          DateTime.now(),
       isRead: json['isRead'] as bool? ?? false,
       isStarred: json['isStarred'] as bool? ?? false,
       folder: EmailFolder.values.firstWhere(

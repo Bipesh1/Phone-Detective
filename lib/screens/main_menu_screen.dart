@@ -3,11 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/game_state_provider.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../widgets/animated_button.dart';
 import '../services/haptic_service.dart';
+import 'help_screen.dart';
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -66,6 +68,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
   @override
   Widget build(BuildContext context) {
     final gameState = Provider.of<GameStateProvider>(context);
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       body: Container(
@@ -83,7 +86,10 @@ class _MainMenuScreenState extends State<MainMenuScreen>
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth < 360 ? 20 : 32,
+                vertical: 40,
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -135,6 +141,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                     ),
                   ),
                   const SizedBox(height: 60),
+
                   // Buttons
                   SlideTransition(
                     position: _buttonSlideAnimations[0],
@@ -146,12 +153,13 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                         onPressed: () {
                           HapticService.mediumTap();
                           gameState.startCase(1);
-                          Navigator.pushNamed(context, AppRoutes.phoneHome);
+                          Navigator.pushNamed(context, AppRoutes.caseIntro);
                         },
                         width: 260,
                       ),
                     ),
                   ),
+
                   if (gameState.hasSaveData) ...[
                     const SizedBox(height: 16),
                     SlideTransition(
@@ -171,6 +179,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                       ),
                     ),
                   ],
+
                   const SizedBox(height: 16),
                   SlideTransition(
                     position: _buttonSlideAnimations[2],
@@ -188,53 +197,59 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 40),
-                  // Bottom buttons
+
+                  // Bottom buttons - FIXED with responsive layout
                   SlideTransition(
                     position: _buttonSlideAnimations[3],
                     child: FadeTransition(
                       opacity: _buttonsController,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextButton.icon(
-                            onPressed: () {
-                              HapticService.lightTap();
-                              Navigator.pushNamed(context, AppRoutes.settings);
-                            },
-                            icon: const Icon(
-                              Icons.settings,
-                              color: AppColors.textSecondary,
-                              size: 18,
-                            ),
-                            label: Text(
-                              'Settings',
-                              style: GoogleFonts.roboto(
-                                color: AppColors.textSecondary,
-                                fontSize: 14,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isSmallScreen = constraints.maxWidth < 340;
+
+                          return Wrap(
+                            alignment: WrapAlignment.center,
+                            runAlignment: WrapAlignment.center,
+                            spacing: isSmallScreen ? 12 : 24,
+                            runSpacing: 12,
+                            children: [
+                              _buildMenuButton(
+                                icon: Icons.settings,
+                                label: 'Settings',
+                                onPressed: () {
+                                  HapticService.lightTap();
+                                  Navigator.pushNamed(
+                                    context,
+                                    AppRoutes.settings,
+                                  );
+                                },
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 24),
-                          TextButton.icon(
-                            onPressed: () {
-                              HapticService.lightTap();
-                              _showCreditsDialog();
-                            },
-                            icon: const Icon(
-                              Icons.info_outline,
-                              color: AppColors.textSecondary,
-                              size: 18,
-                            ),
-                            label: Text(
-                              'Credits',
-                              style: GoogleFonts.roboto(
-                                color: AppColors.textSecondary,
-                                fontSize: 14,
+                              _buildMenuButton(
+                                icon: Icons.help_outline,
+                                label: 'How to Play',
+                                onPressed: () {
+                                  HapticService.lightTap();
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const HelpScreen(),
+                                    ),
+                                  );
+                                },
                               ),
-                            ),
-                          ),
-                        ],
+                              _buildMenuButton(
+                                icon: Icons.info_outline,
+                                label: 'Credits',
+                                onPressed: () {
+                                  HapticService.lightTap();
+                                  _showCreditsDialog();
+                                },
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -243,6 +258,29 @@ class _MainMenuScreenState extends State<MainMenuScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // Helper method to build responsive menu buttons
+  Widget _buildMenuButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return TextButton.icon(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: Icon(icon, color: AppColors.textSecondary, size: 18),
+      label: Text(
+        label,
+        style: GoogleFonts.roboto(color: AppColors.textSecondary, fontSize: 14),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
   }

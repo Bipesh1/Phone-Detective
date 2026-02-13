@@ -60,12 +60,14 @@ class Note {
 
   factory Note.fromJson(Map<String, dynamic> json) {
     return Note(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      content: json['content'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      id: (json['id'] as String?) ?? 'unknown',
+      title: (json['title'] as String?) ?? 'Untitled',
+      content: (json['content'] as String?) ?? '',
+      createdAt:
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+          DateTime.now(),
       modifiedAt: json['modifiedAt'] != null
-          ? DateTime.parse(json['modifiedAt'] as String)
+          ? DateTime.tryParse(json['modifiedAt'] as String)
           : null,
       color: NoteColor.values.firstWhere(
         (e) => e.name == json['color'],
