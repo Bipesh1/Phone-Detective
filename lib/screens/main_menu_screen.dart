@@ -72,9 +72,8 @@ class _MainMenuScreenState extends State<MainMenuScreen>
 
     // Responsive sizing
     final titleFontSize = (screenWidth * 0.115).clamp(28.0, 48.0);
-    final titleLetterSpacing = screenWidth < 360
-        ? 2.0
-        : (screenWidth < 400 ? 4.0 : 6.0);
+    final titleLetterSpacing =
+        screenWidth < 360 ? 2.0 : (screenWidth < 400 ? 4.0 : 6.0);
     final emojiSize = (screenWidth * 0.13).clamp(36.0, 56.0);
     final badgeFontSize = (screenWidth * 0.035).clamp(11.0, 14.0);
     final buttonWidth = (screenWidth * 0.68).clamp(200.0, 300.0);
@@ -168,7 +167,12 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                         icon: Icons.play_arrow_rounded,
                         onPressed: () {
                           HapticService.mediumTap();
-                          gameState.startCase(1);
+                          if (gameState.cases.isEmpty) {
+                            _showNoCasesDialog();
+                            return;
+                          }
+                          // Start with first available case
+                          gameState.startCase(gameState.cases.first.caseNumber);
                           Navigator.pushNamed(context, AppRoutes.caseIntro);
                         },
                         width: buttonWidth,
@@ -349,6 +353,45 @@ class _MainMenuScreenState extends State<MainMenuScreen>
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Close',
+              style: GoogleFonts.roboto(color: AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNoCasesDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.backgroundSecondary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.danger),
+            const SizedBox(width: 12),
+            Text(
+              'No Cases Found',
+              style: GoogleFonts.poppins(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'No cases are currently available. Please check your internet connection or try again later.',
+          style: GoogleFonts.roboto(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'OK',
               style: GoogleFonts.roboto(color: AppColors.primary),
             ),
           ),

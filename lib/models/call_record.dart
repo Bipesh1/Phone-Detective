@@ -9,6 +9,7 @@ class CallRecord {
   final Duration duration;
   final bool isRead;
   final String? note;
+  final String? transcription;
 
   const CallRecord({
     required this.id,
@@ -19,6 +20,7 @@ class CallRecord {
     required this.duration,
     this.isRead = true,
     this.note,
+    this.transcription,
   });
 
   String get displayTime {
@@ -73,6 +75,7 @@ class CallRecord {
       'duration': duration.inSeconds,
       'isRead': isRead,
       'note': note,
+      'transcription': transcription,
     };
   }
 
@@ -90,11 +93,12 @@ class CallRecord {
       duration: Duration(seconds: (json['duration'] as num?)?.toInt() ?? 0),
       isRead: json['isRead'] as bool? ?? true,
       note: json['note'] as String?,
+      transcription: json['transcription'] as String?,
     );
   }
 }
 
-enum CallType { incoming, outgoing, missed }
+enum CallType { incoming, outgoing, missed, voicemail }
 
 extension CallTypeExtension on CallType {
   String get icon {
@@ -105,6 +109,8 @@ extension CallTypeExtension on CallType {
         return '↗️';
       case CallType.missed:
         return '❌';
+      case CallType.voicemail:
+        return '➿';
     }
   }
 
@@ -116,6 +122,8 @@ extension CallTypeExtension on CallType {
         return 0xFF007AFF; // Blue
       case CallType.missed:
         return 0xFFFF3B30; // Red
+      case CallType.voicemail:
+        return 0xFF5856D6; // Purple
     }
   }
 }

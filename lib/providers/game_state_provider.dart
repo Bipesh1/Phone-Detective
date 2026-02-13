@@ -66,11 +66,13 @@ class GameStateProvider extends ChangeNotifier {
       if (remoteCases.isNotEmpty) {
         _allCases = remoteCases;
         _isRemote = true;
+        _allCases = remoteCases;
+        _isRemote = true;
       } else {
-        // Remote returned empty (maybe no cases in DB yet), fallback to static
-        print('Remote DB empty, falling back to static cases');
-        _allCases = [...allCases];
-        _isRemote = false;
+        // Remote returned empty list (valid connection, just no cases)
+        print('Remote DB connected but empty. No cases loaded.');
+        _allCases = [];
+        _isRemote = true;
       }
 
       // Sort by case number
@@ -80,6 +82,8 @@ class GameStateProvider extends ChangeNotifier {
       if (_allCases.isNotEmpty &&
           _allCases.every((c) => c.caseNumber != _currentCaseNumber)) {
         _currentCaseNumber = _allCases.first.caseNumber;
+      } else if (_allCases.isEmpty) {
+        _currentCaseNumber = 0; // No cases available
       }
     } catch (e) {
       print('Failed to load remote cases: $e');
@@ -150,7 +154,18 @@ class GameStateProvider extends ChangeNotifier {
     };
 
     final required = requirements[caseNumber] ?? [];
-    return required.every((req) => _solvedCases.contains(req));
+    return required.every((req) {
+      // If the case is already solved, requirement met
+      if (_solvedCases.contains(req)) return true;
+
+      // If the required case does NOT exist in our loaded cases,
+      // treat it as "skipped" (unlocking this requirement) because we can't play it.
+      final requiredCaseExists = _allCases.any((c) => c.caseNumber == req);
+      if (!requiredCaseExists) return true;
+
+      // Otherwise, the case exists but isn't solved yet -> locked
+      return false;
+    });
   }
 
   // Clue Management

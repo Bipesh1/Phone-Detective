@@ -10,6 +10,7 @@ import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../widgets/clue_hint_banner.dart';
+import '../widgets/voicemail_player.dart';
 
 class CallLogScreen extends StatelessWidget {
   const CallLogScreen({super.key});
@@ -228,90 +229,99 @@ class _CallTile extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              '${call.type.name.toUpperCase()} call ${call.type == CallType.outgoing ? 'to' : 'from'}',
-              style: GoogleFonts.roboto(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              contact?.fullName ?? call.phoneNumber,
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            Text(
-              '${call.displayTime} • ${call.displayDuration.isNotEmpty ? call.displayDuration : 'No answer'}',
-              style: GoogleFonts.roboto(color: AppColors.textTertiary),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  if (isClue) {
-                    gameState.removeClue(call.id);
-                  } else {
-                    final clue = Clue(
-                      id: call.id,
-                      type: ClueType.call,
-                      sourceId: call.id,
-                      preview:
-                          '${call.type.name} call - ${contact?.fullName ?? call.phoneNumber}${call.note != null ? ': ${call.note}' : ''}',
-                      foundAt: DateTime.now(),
-                    );
-                    gameState.addClue(clue);
-                    HapticService.heavyTap();
-                  }
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        isClue
-                            ? 'Removed from clues'
-                            : 'Added to Detective Journal',
-                      ),
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-                },
-                icon: Icon(
-                  isClue ? Icons.bookmark_remove : Icons.bookmark_add,
-                  color: isClue ? Colors.white : Colors.black87,
+      builder: (context) => SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                label: Text(
-                  isClue ? 'Remove from Clues' : 'Mark as Clue',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                '${call.type.name.toUpperCase()} call ${call.type == CallType.outgoing ? 'to' : 'from'}',
+                style: GoogleFonts.roboto(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                contact?.fullName ?? call.phoneNumber,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                '${call.displayTime} • ${call.displayDuration.isNotEmpty ? call.displayDuration : 'No answer'}',
+                style: GoogleFonts.roboto(color: AppColors.textTertiary),
+              ),
+              if (call.transcription != null) ...[
+                const SizedBox(height: 24),
+                VoicemailPlayer(
+                  transcription: call.transcription!,
+                  duration: call.duration,
+                ),
+              ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    if (isClue) {
+                      gameState.removeClue(call.id);
+                    } else {
+                      final clue = Clue(
+                        id: call.id,
+                        type: ClueType.call,
+                        sourceId: call.id,
+                        preview:
+                            '${call.type.name} call - ${contact?.fullName ?? call.phoneNumber}${call.transcription != null ? ' (Voicemail)' : ''}',
+                        foundAt: DateTime.now(),
+                      );
+                      gameState.addClue(clue);
+                      HapticService.heavyTap();
+                    }
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isClue
+                              ? 'Removed from clues'
+                              : 'Added to Detective Journal',
+                        ),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  icon: Icon(
+                    isClue ? Icons.bookmark_remove : Icons.bookmark_add,
                     color: isClue ? Colors.white : Colors.black87,
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isClue ? AppColors.danger : AppColors.clue,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  label: Text(
+                    isClue ? 'Remove from Clues' : 'Mark as Clue',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      color: isClue ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isClue ? AppColors.danger : AppColors.clue,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
