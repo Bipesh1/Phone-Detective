@@ -52,7 +52,8 @@ class _PasswordUnlockWidgetState extends State<PasswordUnlockWidget>
   }
 
   void _checkPassword() {
-    if (_controller.text.trim() == widget.correctPassword) {
+    if (_controller.text.trim().toLowerCase() ==
+        widget.correctPassword.toLowerCase()) {
       HapticService.heavyTap();
       widget.onUnlock();
     } else {

@@ -82,7 +82,9 @@ class NoteDetailScreen extends StatelessWidget {
               PasswordUnlockWidget(
                 correctPassword: note.password ?? '',
                 hint: note.passwordHint,
-                onUnlock: () => gameState.unlockItem(noteId),
+                onUnlock: () {
+                  gameState.unlockItem(noteId);
+                },
               )
             else if (note.isCorrupted && !gameState.isItemRestored(noteId))
               DataRestoreWidget(

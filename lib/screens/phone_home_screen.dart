@@ -19,10 +19,10 @@ class PhoneHomeScreen extends StatefulWidget {
 }
 
 class _PhoneHomeScreenState extends State<PhoneHomeScreen> {
-  final GlobalKey _messagesKey = GlobalKey();
-  final GlobalKey _notesKey = GlobalKey();
-  final GlobalKey _hintsKey = GlobalKey();
-  final GlobalKey _journalKey = GlobalKey();
+  final GlobalKey _messagesKey = GlobalKey(debugLabel: 'messagesKey');
+  final GlobalKey _notesKey = GlobalKey(debugLabel: 'notesKey');
+  final GlobalKey _hintsKey = GlobalKey(debugLabel: 'hintsKey');
+  final GlobalKey _journalKey = GlobalKey(debugLabel: 'journalKey');
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +40,7 @@ class _PhoneHomeScreenState extends State<PhoneHomeScreen> {
                   hintsKey: _hintsKey,
                   journalKey: _journalKey,
                 ),
-                _buildTutorialOverlay(context),
+                Positioned.fill(child: _buildTutorialOverlay(context)),
               ],
             ),
           ),

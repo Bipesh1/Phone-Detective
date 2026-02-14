@@ -62,11 +62,13 @@ class _TutorialOverlayState extends State<TutorialOverlay> {
     // Actually, if we are waiting for layout, showing the hole at 0,0 is bad.
 
     return Stack(
+      fit: StackFit.expand,
       children: [
         // Dimmed Background with "Hole"
         ColorFiltered(
           colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcOut),
           child: Stack(
+            fit: StackFit.expand,
             children: [
               Container(
                 decoration: const BoxDecoration(
@@ -95,13 +97,12 @@ class _TutorialOverlayState extends State<TutorialOverlay> {
         Positioned(
           top: _targetPosition != null
               ? (_targetPosition!.dy > MediaQuery.of(context).size.height / 2
-                    ? _targetPosition!.dy -
-                          160 // Above target
-                    : _targetPosition!.dy +
-                          _targetSize!.height +
-                          20) // Below target
+                  ? _targetPosition!.dy - 160 // Above target
+                  : _targetPosition!.dy +
+                      _targetSize!.height +
+                      20) // Below target
               : MediaQuery.of(context).size.height / 2 -
-                    50, // Center if no target
+                  50, // Center if no target
           left: 20,
           right: 20,
           child: Material(

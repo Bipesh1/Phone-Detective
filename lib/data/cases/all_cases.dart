@@ -7,7 +7,7 @@ import 'case_02_office_theft.dart';
 import 'case_03_reunion_murder.dart';
 import 'case_04_locked_room.dart';
 import 'case_05_jealous_partner.dart';
-import 'case_06_corporate_espionage.dart';
+import 'case_06_blackmail.dart';
 import 'case_07_accident_or_not.dart';
 import 'case_08_vanishing_witness.dart';
 import 'case_09_serial_pattern.dart';
@@ -21,7 +21,7 @@ final List<CaseData> allCases = [
   case03ReunionMurder,
   case04LockedRoom,
   case05JealousPartner,
-  case06CorporateEspionage,
+  case06Blackmail,
   case07AccidentOrNot,
   case08VanishingWitness,
   case09SerialPattern,

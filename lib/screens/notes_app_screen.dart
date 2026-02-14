@@ -62,7 +62,7 @@ class NotesAppScreen extends StatelessWidget {
                       final note = notes[index];
                       final isClue = gameState.isClueMarked(note.id);
                       final isUnlocked =
-                          !note.isLocked || gameState.isNoteUnlocked(note.id);
+                          !note.isLocked || gameState.isItemUnlocked(note.id);
 
                       return NoteCard(
                         note: note,
@@ -70,15 +70,11 @@ class NotesAppScreen extends StatelessWidget {
                         isUnlocked: isUnlocked,
                         onTap: () {
                           HapticService.lightTap();
-                          if (note.isLocked && !isUnlocked) {
-                            _showPasswordDialog(context, note, gameState);
-                          } else {
-                            Navigator.pushNamed(
-                              context,
-                              AppRoutes.noteDetail,
-                              arguments: {'noteId': note.id},
-                            );
-                          }
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.noteDetail,
+                            arguments: {'noteId': note.id},
+                          );
                         },
                       );
                     },
@@ -86,98 +82,6 @@ class NotesAppScreen extends StatelessWidget {
                 ),
               ],
             ),
-    );
-  }
-
-  void _showPasswordDialog(
-    BuildContext context,
-    dynamic note,
-    GameStateProvider gameState,
-  ) {
-    final controller = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.backgroundSecondary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.lock, color: AppColors.textSecondary),
-            const SizedBox(width: 12),
-            Text(
-              'Locked Note',
-              style: GoogleFonts.poppins(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Enter password to view this note',
-              style: GoogleFonts.roboto(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              obscureText: true,
-              style: GoogleFonts.roboto(color: AppColors.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Password',
-                hintStyle: GoogleFonts.roboto(color: AppColors.textTertiary),
-                filled: true,
-                fillColor: AppColors.surfaceDark,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.roboto(color: AppColors.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              if (controller.text.toLowerCase() ==
-                      note.password?.toLowerCase() ||
-                  controller.text.isNotEmpty) {
-                gameState.unlockNote(note.id);
-                HapticService.heavyTap();
-                Navigator.pop(context);
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.noteDetail,
-                  arguments: {'noteId': note.id},
-                );
-              } else {
-                HapticService.vibrate();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Incorrect password'),
-                    backgroundColor: AppColors.danger,
-                  ),
-                );
-              }
-            },
-            child: Text(
-              'Unlock',
-              style: GoogleFonts.roboto(color: AppColors.primary),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -227,8 +227,8 @@ class GameStateProvider extends ChangeNotifier {
   // Locked Notes
   Future<void> unlockNote(String noteId) async {
     _unlockedNotes.add(noteId);
+    notifyListeners(); // Update UI immediately
     await _saveService.saveUnlockedNotes(_currentCaseNumber, _unlockedNotes);
-    notifyListeners();
   }
 
   bool isNoteUnlocked(String noteId) => _unlockedNotes.contains(noteId);
@@ -236,16 +236,16 @@ class GameStateProvider extends ChangeNotifier {
   // Evidence Locking & Corruption
   Future<void> unlockItem(String itemId) async {
     _unlockedItemIds.add(itemId);
+    notifyListeners(); // Update UI immediately
     await _saveService.saveUnlockedItems(_currentCaseNumber, _unlockedItemIds);
-    notifyListeners();
   }
 
   bool isItemUnlocked(String itemId) => _unlockedItemIds.contains(itemId);
 
   Future<void> restoreItem(String itemId) async {
     _restoredItemIds.add(itemId);
+    notifyListeners(); // Update UI immediately
     await _saveService.saveRestoredItems(_currentCaseNumber, _restoredItemIds);
-    notifyListeners();
   }
 
   bool isItemRestored(String itemId) => _restoredItemIds.contains(itemId);
