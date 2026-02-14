@@ -19,7 +19,7 @@ android {
 
     defaultConfig {
         applicationId = "com.phonedetective.phone_detective"
-        minSdk = 21 // or flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion // or flutter.minSdkVersion
         targetSdk = 35 // or flutter.targetSdkVersion
         versionCode = 4 // or flutter.versionCode
         versionName = "1.4.0" // or flutter.versionName
