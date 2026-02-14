@@ -19,6 +19,8 @@ class GameStateProvider extends ChangeNotifier {
   String _playerNotes = '';
   DateTime? _caseStartTime;
   Set<String> _unlockedNotes = {};
+  Set<String> _unlockedItemIds = {}; // For password-protected items
+  Set<String> _restoredItemIds = {}; // For corrupted items
   bool _isInitialized = false;
   bool _isRemote = false;
 
@@ -31,6 +33,8 @@ class GameStateProvider extends ChangeNotifier {
   String get playerNotes => _playerNotes;
   DateTime? get caseStartTime => _caseStartTime;
   Set<String> get unlockedNotes => _unlockedNotes;
+  Set<String> get unlockedItemIds => _unlockedItemIds;
+  Set<String> get restoredItemIds => _restoredItemIds;
   bool get isInitialized => _isInitialized;
   bool get isRemote => _isRemote;
   bool get hasSaveData => _saveService.hasSaveData();
@@ -106,6 +110,8 @@ class GameStateProvider extends ChangeNotifier {
       _playerNotes = _saveService.getPlayerNotes(savedCase);
       _caseStartTime = _saveService.getCaseStartTime(savedCase);
       _unlockedNotes = _saveService.getUnlockedNotes(savedCase);
+      _unlockedItemIds = _saveService.getUnlockedItems(savedCase);
+      _restoredItemIds = _saveService.getRestoredItems(savedCase);
     }
   }
 
@@ -116,6 +122,8 @@ class GameStateProvider extends ChangeNotifier {
     _currentSuspects = _saveService.getSuspects(caseNumber);
     _playerNotes = _saveService.getPlayerNotes(caseNumber);
     _unlockedNotes = _saveService.getUnlockedNotes(caseNumber);
+    _unlockedItemIds = _saveService.getUnlockedItems(caseNumber);
+    _restoredItemIds = _saveService.getRestoredItems(caseNumber);
 
     // Set start time if not already set
     _caseStartTime = _saveService.getCaseStartTime(caseNumber);
@@ -225,6 +233,23 @@ class GameStateProvider extends ChangeNotifier {
 
   bool isNoteUnlocked(String noteId) => _unlockedNotes.contains(noteId);
 
+  // Evidence Locking & Corruption
+  Future<void> unlockItem(String itemId) async {
+    _unlockedItemIds.add(itemId);
+    await _saveService.saveUnlockedItems(_currentCaseNumber, _unlockedItemIds);
+    notifyListeners();
+  }
+
+  bool isItemUnlocked(String itemId) => _unlockedItemIds.contains(itemId);
+
+  Future<void> restoreItem(String itemId) async {
+    _restoredItemIds.add(itemId);
+    await _saveService.saveRestoredItems(_currentCaseNumber, _restoredItemIds);
+    notifyListeners();
+  }
+
+  bool isItemRestored(String itemId) => _restoredItemIds.contains(itemId);
+
   // Reset
   Future<void> resetCurrentCase() async {
     await _saveService.resetCase(_currentCaseNumber);
@@ -233,6 +258,8 @@ class GameStateProvider extends ChangeNotifier {
     _playerNotes = '';
     _caseStartTime = DateTime.now();
     _unlockedNotes = {};
+    _unlockedItemIds = {};
+    _restoredItemIds = {};
     await _saveService.saveCaseStartTime(_currentCaseNumber, _caseStartTime!);
     notifyListeners();
   }
@@ -246,6 +273,8 @@ class GameStateProvider extends ChangeNotifier {
     _playerNotes = '';
     _caseStartTime = null;
     _unlockedNotes = {};
+    _unlockedItemIds = {};
+    _restoredItemIds = {};
     _tutorialStep = 0; // Ensure tutorial step is reset
     notifyListeners();
   }

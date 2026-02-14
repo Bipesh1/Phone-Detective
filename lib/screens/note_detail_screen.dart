@@ -8,6 +8,8 @@ import '../models/clue.dart';
 import '../models/note.dart';
 import '../utils/constants.dart';
 import '../services/haptic_service.dart';
+import '../widgets/password_unlock_widget.dart';
+import '../widgets/data_restore_widget.dart';
 
 class NoteDetailScreen extends StatelessWidget {
   final String noteId;
@@ -75,29 +77,42 @@ class NoteDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             // Content
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Color(note.color.colorValue),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+            // Content
+            if (note.isLocked && !gameState.isItemUnlocked(noteId))
+              PasswordUnlockWidget(
+                correctPassword: note.password ?? '',
+                hint: note.passwordHint,
+                onUnlock: () => gameState.unlockItem(noteId),
+              )
+            else if (note.isCorrupted && !gameState.isItemRestored(noteId))
+              DataRestoreWidget(
+                corruptedContent: note.corruptedContent,
+                onRestore: () => gameState.restoreItem(noteId),
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Color(note.color.colorValue),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: SelectableText(
+                  note.content,
+                  style: GoogleFonts.roboto(
+                    fontSize: 16,
+                    color: Colors.black87,
+                    height: 1.6,
                   ),
-                ],
-              ),
-              child: SelectableText(
-                note.content,
-                style: GoogleFonts.roboto(
-                  fontSize: 16,
-                  color: Colors.black87,
-                  height: 1.6,
                 ),
               ),
-            ),
             const SizedBox(height: 24),
             // Clue button
             if (!isClue)

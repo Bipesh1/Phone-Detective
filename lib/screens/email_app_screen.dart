@@ -9,6 +9,8 @@ import '../models/clue.dart';
 import '../utils/constants.dart';
 import '../services/haptic_service.dart';
 import '../widgets/clue_hint_banner.dart';
+import '../widgets/password_unlock_widget.dart';
+import '../widgets/data_restore_widget.dart';
 
 class EmailAppScreen extends StatefulWidget {
   const EmailAppScreen({super.key});
@@ -275,13 +277,7 @@ class _EmailTile extends StatelessWidget {
                 // Body
                 Expanded(
                   child: SingleChildScrollView(
-                    child: Text(
-                      email.body,
-                      style: GoogleFonts.roboto(
-                        color: AppColors.textPrimary,
-                        height: 1.6,
-                      ),
-                    ),
+                    child: _buildEmailContent(email, gameState),
                   ),
                 ),
               ],
@@ -311,6 +307,29 @@ class _EmailTile extends StatelessWidget {
     final minute = dt.minute.toString().padLeft(2, '0');
     final period = dt.hour >= 12 ? 'PM' : 'AM';
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year} at $hour:$minute $period';
+  }
+
+  Widget _buildEmailContent(Email email, GameStateProvider gameState) {
+    if (email.isLocked && !gameState.isItemUnlocked(email.id)) {
+      return PasswordUnlockWidget(
+        correctPassword: email.password ?? '',
+        hint: email.passwordHint,
+        onUnlock: () => gameState.unlockItem(email.id),
+      );
+    } else if (email.isCorrupted && !gameState.isItemRestored(email.id)) {
+      return DataRestoreWidget(
+        corruptedContent: email.corruptedContent,
+        onRestore: () => gameState.restoreItem(email.id),
+      );
+    }
+
+    return Text(
+      email.body,
+      style: GoogleFonts.roboto(
+        color: AppColors.textPrimary,
+        height: 1.6,
+      ),
+    );
   }
 
   void _toggleClue(BuildContext context) {

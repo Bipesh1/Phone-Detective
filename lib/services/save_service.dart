@@ -12,6 +12,8 @@ class SaveService {
   static const String _keyPlayerNotes = 'player_notes';
   static const String _keyCaseStartTime = 'case_start_time';
   static const String _keyUnlockedNotes = 'unlocked_notes';
+  static const String _keyRestoredItems = 'restored_items';
+  static const String _keyUnlockedItems = 'unlocked_items';
   static const String _keyTutorialCompleted = 'tutorial_completed';
 
   SharedPreferences? _prefs;
@@ -112,13 +114,43 @@ class SaveService {
     return list.toSet();
   }
 
+  // ============ UNLOCKED & RESTORED ITEMS (New System) ============
+  Future<void> saveUnlockedItems(int caseNumber, Set<String> itemIds) async {
+    await _prefs?.setStringList(
+      '${_keyUnlockedItems}_$caseNumber',
+      itemIds.toList(),
+    );
+  }
+
+  Set<String> getUnlockedItems(int caseNumber) {
+    final list =
+        _prefs?.getStringList('${_keyUnlockedItems}_$caseNumber') ?? [];
+    return list.toSet();
+  }
+
+  Future<void> saveRestoredItems(int caseNumber, Set<String> itemIds) async {
+    await _prefs?.setStringList(
+      '${_keyRestoredItems}_$caseNumber',
+      itemIds.toList(),
+    );
+  }
+
+  Set<String> getRestoredItems(int caseNumber) {
+    final list =
+        _prefs?.getStringList('${_keyRestoredItems}_$caseNumber') ?? [];
+    return list.toSet();
+  }
+
   // ============ RESET ============
   Future<void> resetCase(int caseNumber) async {
     await _prefs?.remove('${_keyClues}_$caseNumber');
     await _prefs?.remove('${_keySuspects}_$caseNumber');
     await _prefs?.remove('${_keyPlayerNotes}_$caseNumber');
     await _prefs?.remove('${_keyCaseStartTime}_$caseNumber');
+    await _prefs?.remove('${_keyCaseStartTime}_$caseNumber');
     await _prefs?.remove('${_keyUnlockedNotes}_$caseNumber');
+    await _prefs?.remove('${_keyUnlockedItems}_$caseNumber');
+    await _prefs?.remove('${_keyRestoredItems}_$caseNumber');
   }
 
   Future<void> resetAllProgress() async {

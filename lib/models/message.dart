@@ -10,6 +10,11 @@ class Message {
   final String? imageUrl;
   final bool isDeleted;
   final bool isRead;
+  final bool isLocked;
+  final String? password;
+  final String? passwordHint;
+  final bool isCorrupted;
+  final String? corruptedContent;
 
   const Message({
     required this.id,
@@ -21,6 +26,11 @@ class Message {
     this.imageUrl,
     this.isDeleted = false,
     this.isRead = true,
+    this.isLocked = false,
+    this.password,
+    this.passwordHint,
+    this.isCorrupted = false,
+    this.corruptedContent,
   });
 
   bool get isFromOwner => senderId == 'owner' || senderId == 'me';
@@ -36,6 +46,11 @@ class Message {
       'imageUrl': imageUrl,
       'isDeleted': isDeleted,
       'isRead': isRead,
+      'isLocked': isLocked,
+      'password': password,
+      'passwordHint': passwordHint,
+      'isCorrupted': isCorrupted,
+      'corruptedContent': corruptedContent,
     };
   }
 
@@ -57,6 +72,11 @@ class Message {
       imageUrl: json['imageUrl'] as String?,
       isDeleted: json['isDeleted'] as bool? ?? false,
       isRead: json['isRead'] as bool? ?? true,
+      isLocked: json['isLocked'] as bool? ?? false,
+      password: json['password'] as String?,
+      passwordHint: json['passwordHint'] as String?,
+      isCorrupted: json['isCorrupted'] as bool? ?? false,
+      corruptedContent: json['corruptedContent'] as String?,
     );
   }
 }

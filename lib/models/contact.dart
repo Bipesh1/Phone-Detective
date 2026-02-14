@@ -10,6 +10,7 @@ class Contact {
   final String? email;
   final String? relationship; // Victim, Suspect, Friend, etc.
   final String? notes;
+  final String? birthday; // Format: YYYY-MM-DD
   final Color avatarColor;
 
   const Contact({
@@ -20,6 +21,7 @@ class Contact {
     this.email,
     this.relationship,
     this.notes,
+    this.birthday,
     this.avatarColor = Colors.blue,
   });
 
@@ -40,6 +42,7 @@ class Contact {
       'email': email,
       'relationship': relationship,
       'notes': notes,
+      'birthday': birthday,
       'avatarColor': avatarColor.value, // ignore: deprecated_member_use
     };
   }
@@ -68,6 +71,7 @@ class Contact {
       email: json['email'] as String?,
       relationship: json['relationship'] as String?,
       notes: json['notes'] as String?,
+      birthday: json['birthday'] as String?,
       avatarColor: Color(json['avatarColor'] as int? ?? 0xFF007AFF),
     );
   }

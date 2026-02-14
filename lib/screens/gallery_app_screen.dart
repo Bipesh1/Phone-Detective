@@ -63,16 +63,7 @@ class _GalleryAppScreenState extends State<GalleryAppScreen>
           tabs: [
             Tab(text: 'All (${visiblePhotos.length})'),
             const Tab(text: 'Screenshots'),
-            Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.lock, size: 14),
-                  const SizedBox(width: 4),
-                  Text('Hidden (${hiddenPhotos.length})'),
-                ],
-              ),
-            ),
+            Tab(text: 'Hidden (${hiddenPhotos.length})'),
           ],
         ),
       ),

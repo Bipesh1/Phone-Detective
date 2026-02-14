@@ -39,6 +39,7 @@ final case05JealousPartner = CaseData(
       phoneNumber: '555-0902',
       relationship: 'Moderator (Superfan)',
       avatarColor: const Color(0xFF4CAF50),
+      birthday: '1998-08-08',
     ),
     Contact(
       id: 'liam',
@@ -161,6 +162,16 @@ final case05JealousPartner = CaseData(
           '8:00 PM - Just Chatting\n9:00 PM - Gaming\n\nNote: Tell mods to auto-ban word "Liam"',
       createdAt: DateTime.utc(2024, 7, 21, 12, 0),
     ),
+    Note(
+      id: 'nt_logs',
+      title: 'Server Logs',
+      content:
+          'Admin Access Granted.\nUser "Toby_Mod_God" location IP: 192.168.1.15 (Local Network)\nUser "Bella_Live" location IP: 192.168.1.10 (Local Network)\n\nWARNING: Simultaneous login from same location detected.',
+      createdAt: DateTime.utc(2024, 7, 21, 14, 0),
+      isLocked: true,
+      password: '0808',
+      passwordHint: 'Try Toby\'s birthday (MMDD)',
+    ),
   ],
   callLog: [
     CallRecord(
@@ -192,6 +203,19 @@ final case05JealousPartner = CaseData(
       body:
           'I know I live 4 hours away, but I can move closer if you need better security. I would never let anyone hurt you.',
       timestamp: DateTime.utc(2024, 7, 1, 9, 0),
+    ),
+    Email(
+      id: 'em_welcome',
+      senderId: 'admin', // System sender
+      senderEmail: 'support@stream.tv',
+      senderName: 'StreamTV Support',
+      subject: 'Welcome to StreamTV!',
+      body:
+          'Welcome Bella! We are excited to have you.\n\nYour stream key is: live_559483\nYour account recovery PIN is: 8842\n\nKeep this safe!',
+      timestamp: DateTime.utc(2024, 1, 15, 10, 0),
+      isCorrupted: true,
+      corruptedContent:
+          'W#lc@me t0 Str#amTV! \n\nY%ur str#am k#y is: l*ve_559... [CORRUPTED]\nY#ur acc@unt r#c@very P!N is: 88**\n\nK##p th!s s@f#!',
     ),
   ],
   solution: CaseSolution(

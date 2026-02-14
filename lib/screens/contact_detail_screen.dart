@@ -174,9 +174,8 @@ class ContactDetailScreen extends StatelessWidget {
                         },
                       ),
                       IconActionButton(
-                        icon: isSuspect
-                            ? Icons.person_remove
-                            : Icons.person_add,
+                        icon:
+                            isSuspect ? Icons.person_remove : Icons.person_add,
                         label: isSuspect ? 'Remove' : 'Suspect',
                         color: isSuspect ? AppColors.danger : AppColors.warning,
                         onTap: () {
@@ -212,6 +211,12 @@ class ContactDetailScreen extends StatelessWidget {
                           icon: Icons.email_outlined,
                           label: 'Email',
                           value: contact.email!,
+                        ),
+                      if (contact.birthday != null)
+                        _InfoRow(
+                          icon: Icons.cake,
+                          label: 'Birthday',
+                          value: _formatDate(contact.birthday!),
                         ),
                     ],
                   ),
@@ -273,6 +278,30 @@ class ContactDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      // Expects YYYY-MM-DD
+      final date = DateTime.parse(dateStr);
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+      ];
+      return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    } catch (e) {
+      return dateStr;
+    }
   }
 }
 

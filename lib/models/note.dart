@@ -9,6 +9,9 @@ class Note {
   final NoteColor color;
   final bool isLocked;
   final String? password; // If locked, password needed
+  final String? passwordHint;
+  final bool isCorrupted;
+  final String? corruptedContent;
 
   const Note({
     required this.id,
@@ -19,6 +22,9 @@ class Note {
     this.color = NoteColor.yellow,
     this.isLocked = false,
     this.password,
+    this.passwordHint,
+    this.isCorrupted = false,
+    this.corruptedContent,
   });
 
   String get preview {
@@ -55,6 +61,9 @@ class Note {
       'color': color.name,
       'isLocked': isLocked,
       'password': password,
+      'passwordHint': passwordHint,
+      'isCorrupted': isCorrupted,
+      'corruptedContent': corruptedContent,
     };
   }
 
@@ -63,8 +72,7 @@ class Note {
       id: (json['id'] as String?) ?? 'unknown',
       title: (json['title'] as String?) ?? 'Untitled',
       content: (json['content'] as String?) ?? '',
-      createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
       modifiedAt: json['modifiedAt'] != null
           ? DateTime.tryParse(json['modifiedAt'] as String)
@@ -75,6 +83,9 @@ class Note {
       ),
       isLocked: json['isLocked'] as bool? ?? false,
       password: json['password'] as String?,
+      passwordHint: json['passwordHint'] as String?,
+      isCorrupted: json['isCorrupted'] as bool? ?? false,
+      corruptedContent: json['corruptedContent'] as String?,
     );
   }
 }

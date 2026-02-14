@@ -12,6 +12,11 @@ class Email {
   final bool isStarred;
   final EmailFolder folder;
   final List<EmailAttachment> attachments;
+  final bool isLocked;
+  final String? password;
+  final String? passwordHint;
+  final bool isCorrupted;
+  final String? corruptedContent;
 
   const Email({
     required this.id,
@@ -25,6 +30,11 @@ class Email {
     this.isStarred = false,
     this.folder = EmailFolder.inbox,
     this.attachments = const [],
+    this.isLocked = false,
+    this.password,
+    this.passwordHint,
+    this.isCorrupted = false,
+    this.corruptedContent,
   });
 
   String get preview {
@@ -76,6 +86,11 @@ class Email {
       'isStarred': isStarred,
       'folder': folder.name,
       'attachments': attachments.map((a) => a.toJson()).toList(),
+      'isLocked': isLocked,
+      'password': password,
+      'passwordHint': passwordHint,
+      'isCorrupted': isCorrupted,
+      'corruptedContent': corruptedContent,
     };
   }
 
@@ -87,8 +102,7 @@ class Email {
       senderName: (json['senderName'] as String?) ?? 'Unknown',
       subject: (json['subject'] as String?) ?? '(No Subject)',
       body: (json['body'] as String?) ?? '',
-      timestamp:
-          DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
           DateTime.now(),
       isRead: json['isRead'] as bool? ?? false,
       isStarred: json['isStarred'] as bool? ?? false,
@@ -96,11 +110,15 @@ class Email {
         (e) => e.name == json['folder'],
         orElse: () => EmailFolder.inbox,
       ),
-      attachments:
-          (json['attachments'] as List?)
+      attachments: (json['attachments'] as List?)
               ?.map((a) => EmailAttachment.fromJson(a as Map<String, dynamic>))
               .toList() ??
           [],
+      isLocked: json['isLocked'] as bool? ?? false,
+      password: json['password'] as String?,
+      passwordHint: json['passwordHint'] as String?,
+      isCorrupted: json['isCorrupted'] as bool? ?? false,
+      corruptedContent: json['corruptedContent'] as String?,
     );
   }
 }

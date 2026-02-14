@@ -10,6 +10,8 @@ import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../widgets/clue_hint_banner.dart';
+import '../widgets/password_unlock_widget.dart';
+import '../widgets/data_restore_widget.dart';
 
 class ConversationScreen extends StatefulWidget {
   final String contactId;
@@ -125,33 +127,59 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 return Column(
                   children: [
                     if (dateSeparator != null) dateSeparator,
-                    MessageBubble(
-                      message: message,
-                      isMarkedAsClue: isClue,
-                      contactName: contact?.firstName ?? contact?.fullName,
-                      showSenderName: showSenderName,
-                      onLongPress: () => _showClueDialog(
-                        context,
-                        message,
-                        isClue,
-                        gameState,
-                        message.isFromOwner
-                            ? 'You'
-                            : contact?.firstName ?? 'Unknown',
+                    if (message.isLocked &&
+                        !gameState.isItemUnlocked(message.id))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        child: PasswordUnlockWidget(
+                          correctPassword: message.password ?? '',
+                          hint: message.passwordHint,
+                          onUnlock: () => gameState.unlockItem(message.id),
+                        ),
+                      )
+                    else if (message.isCorrupted &&
+                        !gameState.isItemRestored(message.id))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        child: DataRestoreWidget(
+                          corruptedContent: message.corruptedContent,
+                          onRestore: () => gameState.restoreItem(message.id),
+                        ),
+                      )
+                    else
+                      MessageBubble(
+                        message: message,
+                        isMarkedAsClue: isClue,
+                        contactName: contact?.firstName ?? contact?.fullName,
+                        showSenderName: showSenderName,
+                        onLongPress: () => _showClueDialog(
+                          context,
+                          message,
+                          isClue,
+                          gameState,
+                          message.isFromOwner
+                              ? 'You'
+                              : contact?.firstName ?? 'Unknown',
+                        ),
+                        onImageTap: message.imageUrl != null
+                            ? () {
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.photoViewer,
+                                  arguments: {
+                                    'photoId': message.imageUrl,
+                                    'photoIndex': 0,
+                                  },
+                                );
+                              }
+                            : null,
                       ),
-                      onImageTap: message.imageUrl != null
-                          ? () {
-                              Navigator.pushNamed(
-                                context,
-                                AppRoutes.photoViewer,
-                                arguments: {
-                                  'photoId': message.imageUrl,
-                                  'photoIndex': 0,
-                                },
-                              );
-                            }
-                          : null,
-                    ),
                   ],
                 );
               },
