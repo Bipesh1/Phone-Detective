@@ -21,8 +21,8 @@ android {
         applicationId = "com.phonedetective.phone_detective"
         minSdk = flutter.minSdkVersion // or flutter.minSdkVersion
         targetSdk = 35 // or flutter.targetSdkVersion
-        versionCode = 7 // or flutter.versionCode
-        versionName = "1.7.0" // or flutter.versionName
+        versionCode = 8 // or flutter.versionCode
+        versionName = "1.8.0" // or flutter.versionName
     }
 
     compileOptions {
@@ -34,14 +34,14 @@ android {
         jvmTarget = "17"
     }
 
-    signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["storePassword"] as String
-        }
-    }
+     signingConfigs {
+         create("release") {
+             keyAlias = keystoreProperties["keyAlias"] as String
+             keyPassword = keystoreProperties["keyPassword"] as String
+             storeFile = file(keystoreProperties["storeFile"] as String)
+             storePassword = keystoreProperties["storePassword"] as String
+         }
+     }
 
     buildTypes {
         getByName("release") {
