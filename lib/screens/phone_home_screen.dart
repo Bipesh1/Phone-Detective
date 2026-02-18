@@ -63,6 +63,7 @@ class _PhoneHomeScreenState extends State<PhoneHomeScreen> {
           case 1:
             message =
                 "Welcome to Phone Detective! Your goal is to solve the mystery by exploring this phone's data.";
+            target = null;
             break;
           case 2:
             message =
@@ -88,6 +89,7 @@ class _PhoneHomeScreenState extends State<PhoneHomeScreen> {
         }
 
         return TutorialOverlay(
+          key: ValueKey('tutorial_${gameState.tutorialStep}'),
           message: message,
           onContinue: onContinue,
           targetKey: target,
@@ -162,7 +164,7 @@ class _PhoneContent extends StatelessWidget {
                         children: [
                           // Row 1
                           AppIcon(
-                            key: messagesKey,
+                            tutorialKey: messagesKey,
                             icon: Icons.chat_bubble,
                             label: 'Messages',
                             backgroundColor: AppColors.appIconColors[0],
@@ -193,7 +195,7 @@ class _PhoneContent extends StatelessWidget {
                           ),
                           // Row 2
                           AppIcon(
-                            key: notesKey,
+                            tutorialKey: notesKey,
                             icon: Icons.note,
                             label: 'Notes',
                             backgroundColor: AppColors.appIconColors[4],
@@ -214,7 +216,7 @@ class _PhoneContent extends StatelessWidget {
                                 _navigateTo(context, AppRoutes.settings),
                           ),
                           AppIcon(
-                            key:
+                            tutorialKey:
                                 journalKey, // Using Journal Key here (was in dock, but grid is better for tutorial visibility)
                             icon: Icons.search,
                             label: 'Journal',
@@ -231,7 +233,7 @@ class _PhoneContent extends StatelessWidget {
                           ),
                           _PlaceholderAppIcon(icon: Icons.map, label: 'Maps'),
                           AppIcon(
-                            key: hintsKey,
+                            tutorialKey: hintsKey,
                             icon: Icons.lightbulb,
                             label: 'Hints',
                             backgroundColor:

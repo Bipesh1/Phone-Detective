@@ -1,5 +1,3 @@
-// Phone Detective - App Icon Widget
-
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 import '../services/haptic_service.dart';
@@ -11,6 +9,7 @@ class AppIcon extends StatefulWidget {
   final VoidCallback onTap;
   final int? badgeCount;
   final bool isLocked;
+  final GlobalKey? tutorialKey;
 
   const AppIcon({
     super.key,
@@ -20,6 +19,7 @@ class AppIcon extends StatefulWidget {
     required this.onTap,
     this.badgeCount,
     this.isLocked = false,
+    this.tutorialKey,
   });
 
   @override
@@ -27,8 +27,8 @@ class AppIcon extends StatefulWidget {
 }
 
 class _AppIconState extends State<AppIcon> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
 
   @override
   void initState() {
@@ -37,10 +37,9 @@ class _AppIconState extends State<AppIcon> with SingleTickerProviderStateMixin {
       duration: AppDurations.buttonTap,
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.9,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -51,13 +50,8 @@ class _AppIconState extends State<AppIcon> with SingleTickerProviderStateMixin {
 
   void _handleTap() {
     HapticService.lightTap();
-    _controller.forward().then((_) {
-      _controller.reverse();
-    });
-
-    Future.delayed(AppDurations.buttonTap, () {
-      widget.onTap();
-    });
+    _controller.forward().then((_) => _controller.reverse());
+    Future.delayed(AppDurations.buttonTap, widget.onTap);
   }
 
   @override
@@ -70,74 +64,78 @@ class _AppIconState extends State<AppIcon> with SingleTickerProviderStateMixin {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // App icon container
-                Container(
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        widget.backgroundColor,
-                        HSLColor.fromColor(widget.backgroundColor)
-                            .withLightness(
-                              (HSLColor.fromColor(
-                                        widget.backgroundColor,
-                                      ).lightness -
-                                      0.15)
-                                  .clamp(0.0, 1.0),
-                            )
-                            .toColor(),
+            // Put the tutorialKey on the icon area only (not the whole Column)
+            SizedBox(
+              key: widget.tutorialKey,
+              width: 58,
+              height: 58,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          widget.backgroundColor,
+                          HSLColor.fromColor(widget.backgroundColor)
+                              .withLightness(
+                                (HSLColor.fromColor(widget.backgroundColor)
+                                            .lightness -
+                                        0.15)
+                                    .clamp(0.0, 1.0),
+                              )
+                              .toColor(),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: widget.backgroundColor.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: widget.backgroundColor.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    child: widget.isLocked
+                        ? const Icon(Icons.lock,
+                            color: Colors.white54, size: 28)
+                        : Icon(widget.icon, color: Colors.white, size: 28),
                   ),
-                  child: widget.isLocked
-                      ? const Icon(Icons.lock, color: Colors.white54, size: 28)
-                      : Icon(widget.icon, color: Colors.white, size: 28),
-                ),
-                // Badge
-                if (widget.badgeCount != null && widget.badgeCount! > 0)
-                  Positioned(
-                    right: -4,
-                    top: -4,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.danger,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppColors.background,
-                          width: 2,
+                  if (widget.badgeCount != null && widget.badgeCount! > 0)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
                         ),
-                      ),
-                      child: Text(
-                        widget.badgeCount! > 99
-                            ? '99+'
-                            : widget.badgeCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                        decoration: BoxDecoration(
+                          color: AppColors.danger,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.background,
+                            width: 2,
+                          ),
+                        ),
+                        child: Text(
+                          widget.badgeCount! > 99
+                              ? '99+'
+                              : widget.badgeCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 4),
             Text(

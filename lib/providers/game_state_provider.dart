@@ -1,6 +1,7 @@
 // Phone Detective - Game State Provider
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../services/save_service.dart';
 import '../services/supabase_service.dart';
@@ -68,8 +69,6 @@ class GameStateProvider extends ChangeNotifier {
     try {
       final remoteCases = await SupabaseService().getCases();
       if (remoteCases.isNotEmpty) {
-        _allCases = remoteCases;
-        _isRemote = true;
         _allCases = remoteCases;
         _isRemote = true;
       } else {
@@ -298,8 +297,16 @@ class GameStateProvider extends ChangeNotifier {
   }
 
   void nextTutorialStep() {
-    _tutorialStep++;
-    notifyListeners();
+    if (_tutorialStep < 5) {
+      _tutorialStep++;
+
+      // Force a frame to complete before showing next step
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
+    } else {
+      endTutorial();
+    }
   }
 
   Future<void> endTutorial() async {
