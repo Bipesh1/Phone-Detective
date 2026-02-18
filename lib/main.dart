@@ -31,11 +31,14 @@ void main() async {
   );
 
   // Initialize Supabase
-
+  await dotenv.load(fileName: ".env");
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
+  // print('-------------------------------');
+  // print('Supabase initialized with URL: ${dotenv.env['SUPABASE_URL']}');
+
   // Supabase initialized
 
   // Initialize game state
