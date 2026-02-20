@@ -127,7 +127,10 @@ class _CallTile extends StatelessWidget {
       child: ListTile(
         onTap: () {
           HapticService.lightTap();
-          if (contact != null) {
+          // Voicemail entries open the detail sheet directly
+          if (call.type == CallType.voicemail || call.transcription != null) {
+            _showClueDialog(context, call, isClue);
+          } else if (contact != null) {
             Navigator.pushNamed(
               context,
               AppRoutes.contactDetail,
@@ -192,7 +195,38 @@ class _CallTile extends StatelessWidget {
                 ],
               ],
             ),
-            if (call.note != null && call.note!.isNotEmpty)
+            // Voicemail tag
+            if (call.type == CallType.voicemail || call.transcription != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5856D6).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: const Color(0xFF5856D6).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.mic, size: 12, color: const Color(0xFF5856D6)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Voicemail • Tap to play',
+                        style: GoogleFonts.roboto(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF5856D6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (call.note != null && call.note!.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Text(

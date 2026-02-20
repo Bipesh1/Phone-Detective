@@ -22,6 +22,8 @@ class GameStateProvider extends ChangeNotifier {
   Set<String> _unlockedNotes = {};
   Set<String> _unlockedItemIds = {}; // For password-protected items
   Set<String> _restoredItemIds = {}; // For corrupted items
+  Map<String, int> _revealedHints =
+      {}; // stepHintId -> number of hints revealed
   bool _isInitialized = false;
   bool _isRemote = false;
 
@@ -249,6 +251,19 @@ class GameStateProvider extends ChangeNotifier {
 
   bool isItemRestored(String itemId) => _restoredItemIds.contains(itemId);
 
+  // Step Hints - Progressive reveal
+  int getRevealedHintCount(String stepHintId) {
+    return _revealedHints[stepHintId] ?? 0;
+  }
+
+  void revealNextHint(String stepHintId, int maxHints) {
+    final current = _revealedHints[stepHintId] ?? 0;
+    if (current < maxHints) {
+      _revealedHints[stepHintId] = current + 1;
+      notifyListeners();
+    }
+  }
+
   // Reset
   Future<void> resetCurrentCase() async {
     await _saveService.resetCase(_currentCaseNumber);
@@ -259,6 +274,7 @@ class GameStateProvider extends ChangeNotifier {
     _unlockedNotes = {};
     _unlockedItemIds = {};
     _restoredItemIds = {};
+    _revealedHints = {};
     await _saveService.saveCaseStartTime(_currentCaseNumber, _caseStartTime!);
     notifyListeners();
   }
@@ -274,6 +290,7 @@ class GameStateProvider extends ChangeNotifier {
     _unlockedNotes = {};
     _unlockedItemIds = {};
     _restoredItemIds = {};
+    _revealedHints = {};
     _tutorialStep = 0; // Ensure tutorial step is reset
     notifyListeners();
   }

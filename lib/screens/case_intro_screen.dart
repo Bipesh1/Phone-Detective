@@ -108,7 +108,10 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
 
     // Find the "owner" contact to get their name
     final owner = gameState.currentCase.contacts.firstWhere(
-      (c) => c.relationship == 'Phone Owner' || c.id == 'owner' || c.id == 'me',
+      (c) =>
+          (c.relationship?.contains('Phone Owner') ?? false) ||
+          c.id == 'owner' ||
+          c.id == 'me',
       orElse: () => Contact(
         id: 'owner',
         firstName: 'Unknown',

@@ -106,15 +106,21 @@ class _EmailTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLockedEmail = email.isLocked && !gameState.isItemUnlocked(email.id);
+
     return ListTile(
       onTap: () => _showDetail(context),
       onLongPress: () => _toggleClue(context),
       leading: CircleAvatar(
-        backgroundColor: AppColors.primary.withValues(alpha: 0.2),
-        child: Text(
-          email.senderName[0].toUpperCase(),
-          style: TextStyle(color: AppColors.primary),
-        ),
+        backgroundColor: isLockedEmail
+            ? AppColors.danger.withValues(alpha: 0.2)
+            : AppColors.primary.withValues(alpha: 0.2),
+        child: isLockedEmail
+            ? Icon(Icons.lock, color: AppColors.danger, size: 20)
+            : Text(
+                email.senderName[0].toUpperCase(),
+                style: TextStyle(color: AppColors.primary),
+              ),
       ),
       title: Row(
         children: [
@@ -128,6 +134,27 @@ class _EmailTile extends StatelessWidget {
             ),
           ),
           if (isClue) Icon(Icons.bookmark, color: AppColors.clue, size: 16),
+          if (isLockedEmail)
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'LOCKED',
+                  style: GoogleFonts.robotoMono(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.danger,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(width: 6),
           Text(
             email.displayDate,
             style: GoogleFonts.roboto(
@@ -147,10 +174,13 @@ class _EmailTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           Text(
-            email.preview,
+            isLockedEmail ? '🔒 Encrypted — Password required' : email.preview,
             style: GoogleFonts.roboto(
-              color: AppColors.textTertiary,
+              color: isLockedEmail
+                  ? AppColors.danger.withValues(alpha: 0.6)
+                  : AppColors.textTertiary,
               fontSize: 12,
+              fontStyle: isLockedEmail ? FontStyle.italic : FontStyle.normal,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -314,6 +344,7 @@ class _EmailTile extends StatelessWidget {
       return PasswordUnlockWidget(
         correctPassword: email.password ?? '',
         hint: email.passwordHint,
+        stepHint: gameState.currentCase.getStepHintForNode(email.id),
         onUnlock: () => gameState.unlockItem(email.id),
       );
     } else if (email.isCorrupted && !gameState.isItemRestored(email.id)) {

@@ -72,20 +72,29 @@ class Note {
       id: (json['id'] as String?) ?? 'unknown',
       title: (json['title'] as String?) ?? 'Untitled',
       content: (json['content'] as String?) ?? '',
-      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ??
+              json['created_at'] as String? ??
+              '') ??
           DateTime.now(),
       modifiedAt: json['modifiedAt'] != null
           ? DateTime.tryParse(json['modifiedAt'] as String)
-          : null,
+          : json['modified_at'] != null
+              ? DateTime.tryParse(json['modified_at'] as String)
+              : null,
       color: NoteColor.values.firstWhere(
         (e) => e.name == json['color'],
         orElse: () => NoteColor.yellow,
       ),
-      isLocked: json['isLocked'] as bool? ?? false,
+      isLocked:
+          json['isLocked'] as bool? ?? json['is_locked'] as bool? ?? false,
       password: json['password'] as String?,
-      passwordHint: json['passwordHint'] as String?,
-      isCorrupted: json['isCorrupted'] as bool? ?? false,
-      corruptedContent: json['corruptedContent'] as String?,
+      passwordHint:
+          json['passwordHint'] as String? ?? json['password_hint'] as String?,
+      isCorrupted: json['isCorrupted'] as bool? ??
+          json['is_corrupted'] as bool? ??
+          false,
+      corruptedContent: json['corruptedContent'] as String? ??
+          json['corrupted_content'] as String?,
     );
   }
 }

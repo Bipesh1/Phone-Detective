@@ -72,7 +72,28 @@ class Contact {
       relationship: json['relationship'] as String?,
       notes: json['notes'] as String?,
       birthday: json['birthday'] as String?,
-      avatarColor: Color(json['avatarColor'] as int? ?? 0xFF007AFF),
+      avatarColor: _parseAvatarColor(json),
     );
+  }
+
+  /// Parse avatar color from DB hex string or legacy int value
+  static Color _parseAvatarColor(Map<String, dynamic> json) {
+    // DB schema sends avatarColorHex as "#1976D2"
+    final hexStr = json['avatarColorHex'] as String?;
+    if (hexStr != null && hexStr.trim().isNotEmpty) {
+      var h = hexStr.trim().replaceAll('#', '');
+      if (h.startsWith('0x') || h.startsWith('0X')) {
+        h = h.substring(2);
+      }
+      if (h.length == 6) h = 'FF$h';
+      try {
+        return Color(int.parse(h, radix: 16));
+      } catch (_) {}
+    }
+    // Legacy fallback: avatarColor as int
+    if (json['avatarColor'] is int) {
+      return Color(json['avatarColor'] as int);
+    }
+    return const Color(0xFF007AFF);
   }
 }

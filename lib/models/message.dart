@@ -58,8 +58,12 @@ class Message {
     return Message(
       id: (json['id'] as String?) ??
           DateTime.now().millisecondsSinceEpoch.toString(),
-      conversationId: (json['conversationId'] as String?) ?? '',
-      senderId: (json['senderId'] as String?) ?? 'unknown',
+      conversationId: (json['conversationId'] as String?) ??
+          (json['conversation_id'] as String?) ??
+          '',
+      senderId: (json['senderId'] as String?) ??
+          (json['sender_id'] as String?) ??
+          'unknown',
       content: (json['content'] as String?) ??
           (json['text'] as String?) ??
           '', // Handle 'text' fallback
@@ -69,14 +73,20 @@ class Message {
         (e) => e.name == json['type'],
         orElse: () => MessageType.text,
       ),
-      imageUrl: json['imageUrl'] as String?,
-      isDeleted: json['isDeleted'] as bool? ?? false,
-      isRead: json['isRead'] as bool? ?? true,
-      isLocked: json['isLocked'] as bool? ?? false,
+      imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
+      isDeleted:
+          json['isDeleted'] as bool? ?? json['is_deleted'] as bool? ?? false,
+      isRead: json['isRead'] as bool? ?? json['is_read'] as bool? ?? true,
+      isLocked:
+          json['isLocked'] as bool? ?? json['is_locked'] as bool? ?? false,
       password: json['password'] as String?,
-      passwordHint: json['passwordHint'] as String?,
-      isCorrupted: json['isCorrupted'] as bool? ?? false,
-      corruptedContent: json['corruptedContent'] as String?,
+      passwordHint:
+          json['passwordHint'] as String? ?? json['password_hint'] as String?,
+      isCorrupted: json['isCorrupted'] as bool? ??
+          json['is_corrupted'] as bool? ??
+          false,
+      corruptedContent: json['corruptedContent'] as String? ??
+          json['corrupted_content'] as String?,
     );
   }
 }

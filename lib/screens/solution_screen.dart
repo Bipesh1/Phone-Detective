@@ -7,6 +7,7 @@ import '../providers/game_state_provider.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
+import '../widgets/step_hint_button.dart';
 
 class SolutionScreen extends StatefulWidget {
   const SolutionScreen({super.key});
@@ -75,9 +76,8 @@ class _SolutionScreenState extends State<SolutionScreen> {
                         : AppColors.surfaceDark,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : Colors.transparent,
+                      color:
+                          isSelected ? AppColors.primary : Colors.transparent,
                       width: 2,
                     ),
                   ),
@@ -116,6 +116,18 @@ class _SolutionScreenState extends State<SolutionScreen> {
                 ),
               );
             }),
+            // Step hints for final accusation
+            Builder(
+              builder: (context) {
+                final solutionHint =
+                    gameState.currentCase.getStepHintForNode('solution');
+                if (solutionHint == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: StepHintButton(stepHint: solutionHint),
+                );
+              },
+            ),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,

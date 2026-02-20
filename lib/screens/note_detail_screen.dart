@@ -82,6 +82,7 @@ class NoteDetailScreen extends StatelessWidget {
               PasswordUnlockWidget(
                 correctPassword: note.password ?? '',
                 hint: note.passwordHint,
+                stepHint: gameState.currentCase.getStepHintForNode(noteId),
                 onUnlock: () {
                   gameState.unlockItem(noteId);
                 },

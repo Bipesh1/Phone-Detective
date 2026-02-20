@@ -7,6 +7,7 @@ import 'photo.dart';
 import 'note.dart';
 import 'call_record.dart';
 import 'email.dart';
+import 'step_hint.dart';
 
 class CaseData {
   final int caseNumber;
@@ -27,6 +28,7 @@ class CaseData {
   final Color themeColor;
   final String? wallpaper; // Not in DB right now (null unless you add column)
   final List<String> hints;
+  final List<StepHint> stepHints;
 
   const CaseData({
     required this.caseNumber,
@@ -47,6 +49,7 @@ class CaseData {
     this.themeColor = const Color(0xFF007AFF),
     this.wallpaper,
     this.hints = const [],
+    this.stepHints = const [],
   });
 
   Contact? getContact(String id) {
@@ -68,6 +71,15 @@ class CaseData {
   List<Message> getMessagesForContact(String contactId) {
     final conv = getConversation(contactId);
     return conv?.messages ?? [];
+  }
+
+  /// Find the step hint for a specific node (note, email, message, or "solution")
+  StepHint? getStepHintForNode(String nodeId) {
+    try {
+      return stepHints.firstWhere((h) => h.forNodeId == nodeId);
+    } catch (_) {
+      return null;
+    }
   }
 
   factory CaseData.fromJson(Map<String, dynamic> json) {
@@ -118,6 +130,10 @@ class CaseData {
       wallpaper: null,
 
       hints: (json['hints'] as List<dynamic>? ?? []).cast<String>(),
+
+      stepHints: (json['step_hints'] as List<dynamic>? ?? [])
+          .map((e) => StepHint.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 

@@ -129,16 +129,33 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     if (dateSeparator != null) dateSeparator,
                     if (message.isLocked &&
                         !gameState.isItemUnlocked(message.id))
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        child: PasswordUnlockWidget(
-                          correctPassword: message.password ?? '',
-                          hint: message.passwordHint,
-                          onUnlock: () => gameState.unlockItem(message.id),
-                        ),
+                      _EncryptedMessageBubble(
+                        message: message,
+                        isFromOwner: message.isFromOwner,
+                        onTapUnlock: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => Dialog(
+                              backgroundColor: AppColors.backgroundSecondary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: PasswordUnlockWidget(
+                                  correctPassword: message.password ?? '',
+                                  hint: message.passwordHint,
+                                  stepHint: gameState.currentCase
+                                      .getStepHintForNode(message.id),
+                                  onUnlock: () {
+                                    gameState.unlockItem(message.id);
+                                    Navigator.pop(ctx);
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       )
                     else if (message.isCorrupted &&
                         !gameState.isItemRestored(message.id))
@@ -416,6 +433,113 @@ class _DisabledInputBar extends StatelessWidget {
           const SizedBox(width: 12),
           Icon(Icons.mic, color: AppColors.textTertiary),
         ],
+      ),
+    );
+  }
+}
+
+class _EncryptedMessageBubble extends StatelessWidget {
+  final dynamic message;
+  final bool isFromOwner;
+  final VoidCallback onTapUnlock;
+
+  const _EncryptedMessageBubble({
+    required this.message,
+    required this.isFromOwner,
+    required this.onTapUnlock,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: isFromOwner ? 80 : 16,
+        right: isFromOwner ? 16 : 80,
+        top: 4,
+        bottom: 4,
+      ),
+      child: GestureDetector(
+        onTap: onTapUnlock,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isFromOwner
+                ? AppColors.primary.withValues(alpha: 0.08)
+                : AppColors.surfaceDark,
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(16),
+              topRight: const Radius.circular(16),
+              bottomLeft: Radius.circular(isFromOwner ? 16 : 4),
+              bottomRight: Radius.circular(isFromOwner ? 4 : 16),
+            ),
+            border: Border.all(
+              color: AppColors.danger.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.danger.withValues(alpha: 0.1),
+                blurRadius: 8,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock, size: 16, color: AppColors.danger),
+                  const SizedBox(width: 6),
+                  Text(
+                    'ENCRYPTED MESSAGE',
+                    style: GoogleFonts.robotoMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.danger,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '████ ███████ ██████',
+                style: GoogleFonts.robotoMono(
+                  fontSize: 14,
+                  color: AppColors.textTertiary.withValues(alpha: 0.3),
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.key, size: 14, color: AppColors.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'TAP TO DECRYPT',
+                      style: GoogleFonts.robotoMono(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

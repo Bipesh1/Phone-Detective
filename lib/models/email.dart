@@ -97,15 +97,21 @@ class Email {
   factory Email.fromJson(Map<String, dynamic> json) {
     return Email(
       id: (json['id'] as String?) ?? 'unknown',
-      senderId: (json['senderId'] as String?) ?? '',
-      senderEmail: (json['senderEmail'] as String?) ?? '',
-      senderName: (json['senderName'] as String?) ?? 'Unknown',
+      senderId:
+          (json['senderId'] as String?) ?? (json['sender_id'] as String?) ?? '',
+      senderEmail: (json['senderEmail'] as String?) ??
+          (json['sender_email'] as String?) ??
+          '',
+      senderName: (json['senderName'] as String?) ??
+          (json['sender_name'] as String?) ??
+          'Unknown',
       subject: (json['subject'] as String?) ?? '(No Subject)',
       body: (json['body'] as String?) ?? '',
       timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
           DateTime.now(),
-      isRead: json['isRead'] as bool? ?? false,
-      isStarred: json['isStarred'] as bool? ?? false,
+      isRead: json['isRead'] as bool? ?? json['is_read'] as bool? ?? false,
+      isStarred:
+          json['isStarred'] as bool? ?? json['is_starred'] as bool? ?? false,
       folder: EmailFolder.values.firstWhere(
         (e) => e.name == json['folder'],
         orElse: () => EmailFolder.inbox,
@@ -114,11 +120,16 @@ class Email {
               ?.map((a) => EmailAttachment.fromJson(a as Map<String, dynamic>))
               .toList() ??
           [],
-      isLocked: json['isLocked'] as bool? ?? false,
+      isLocked:
+          json['isLocked'] as bool? ?? json['is_locked'] as bool? ?? false,
       password: json['password'] as String?,
-      passwordHint: json['passwordHint'] as String?,
-      isCorrupted: json['isCorrupted'] as bool? ?? false,
-      corruptedContent: json['corruptedContent'] as String?,
+      passwordHint:
+          json['passwordHint'] as String? ?? json['password_hint'] as String?,
+      isCorrupted: json['isCorrupted'] as bool? ??
+          json['is_corrupted'] as bool? ??
+          false,
+      corruptedContent: json['corruptedContent'] as String? ??
+          json['corrupted_content'] as String?,
     );
   }
 }

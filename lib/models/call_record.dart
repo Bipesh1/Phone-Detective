@@ -90,7 +90,10 @@ class CallRecord {
       ),
       timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
           DateTime.now(),
-      duration: Duration(seconds: (json['duration'] as num?)?.toInt() ?? 0),
+      duration: Duration(
+          seconds: (json['durationSeconds'] as num?)?.toInt() ??
+              (json['duration'] as num?)?.toInt() ??
+              0),
       isRead: json['isRead'] as bool? ?? true,
       note: json['note'] as String?,
       transcription: json['transcription'] as String?,
