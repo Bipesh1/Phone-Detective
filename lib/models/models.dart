@@ -9,3 +9,6 @@ export 'call_record.dart';
 export 'email.dart';
 export 'clue.dart';
 export 'step_hint.dart';
+export 'suspense_event.dart';
+export 'timeline_event.dart';
+export 'interrogation.dart';

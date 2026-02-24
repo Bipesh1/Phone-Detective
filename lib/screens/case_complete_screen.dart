@@ -105,7 +105,15 @@ class _CaseCompleteScreenState extends State<CaseCompleteScreen>
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 16),
+                  // Detective Rank
+                  _DetectiveRank(
+                    cluesFound: gameState.currentClues.length,
+                    totalClues: caseData.totalClues,
+                    redHerringsMarked: gameState.redHerringCount,
+                    timelineCompleted: gameState.timelineCompleted,
+                  ),
+                  const SizedBox(height: 32),
                   // Stats
                   _StatCard(
                     children: [
@@ -257,6 +265,61 @@ class _StatRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DetectiveRank extends StatelessWidget {
+  final int cluesFound;
+  final int totalClues;
+  final int redHerringsMarked;
+  final bool timelineCompleted;
+
+  const _DetectiveRank({
+    required this.cluesFound,
+    required this.totalClues,
+    required this.redHerringsMarked,
+    required this.timelineCompleted,
+  });
+
+  String get rank {
+    double score = 0;
+    if (totalClues > 0) score += (cluesFound / totalClues) * 40;
+    if (redHerringsMarked == 0) score += 30;
+    if (timelineCompleted) score += 30;
+
+    if (score >= 90) return '⭐ MASTER DETECTIVE';
+    if (score >= 70) return '🔍 SENIOR DETECTIVE';
+    if (score >= 50) return '🕵️ DETECTIVE';
+    return '📋 ROOKIE';
+  }
+
+  Color get rankColor {
+    final r = rank;
+    if (r.contains('MASTER')) return const Color(0xFFFFD700);
+    if (r.contains('SENIOR')) return const Color(0xFFC0C0C0);
+    if (r.contains('DETECTIVE')) return const Color(0xFFCD7F32);
+    return AppColors.textSecondary;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: rankColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: rankColor.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        rank,
+        style: GoogleFonts.robotoMono(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: rankColor,
+          letterSpacing: 2,
+        ),
       ),
     );
   }

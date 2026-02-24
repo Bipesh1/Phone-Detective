@@ -21,6 +21,8 @@ import '../screens/solution_screen.dart';
 import '../screens/case_complete_screen.dart';
 import '../screens/case_intro_screen.dart';
 import '../screens/hacking_simulator_screen.dart';
+import '../screens/timeline_builder_screen.dart';
+import '../screens/interrogation_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -43,6 +45,8 @@ class AppRoutes {
   static const String caseComplete = '/case-complete';
   static const String caseIntro = '/case-intro';
   static const String hackingSimulator = '/hacking-simulator';
+  static const String timelineBuilder = '/timeline-builder';
+  static const String interrogation = '/interrogation';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -133,6 +137,16 @@ class AppRoutes {
             isCorrect: args?['isCorrect'] ?? false,
             timeTaken: args?['timeTaken'] ?? Duration.zero,
           ),
+          settings,
+        );
+
+      case timelineBuilder:
+        return _buildPageRoute(const TimelineBuilderScreen(), settings);
+
+      case interrogation:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return _buildPageRoute(
+          InterrogationScreen(contactId: args?['contactId'] ?? ''),
           settings,
         );
 

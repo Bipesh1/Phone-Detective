@@ -27,6 +27,13 @@ class GameStateProvider extends ChangeNotifier {
   bool _isInitialized = false;
   bool _isRemote = false;
 
+  // Suspense & thriller state
+  Set<String> _firedSuspenseEvents = {};
+  Set<String> _answeredInterrogations = {};
+  Set<String> _verifiedDeductions = {};
+  bool _timelineCompleted = false;
+  SuspenseEvent? _pendingSuspenseEvent;
+
   // Getters
   List<CaseData> get cases => _allCases;
   int get currentCaseNumber => _currentCaseNumber;
@@ -41,6 +48,11 @@ class GameStateProvider extends ChangeNotifier {
   bool get isInitialized => _isInitialized;
   bool get isRemote => _isRemote;
   bool get hasSaveData => _saveService.hasSaveData();
+  Set<String> get firedSuspenseEvents => _firedSuspenseEvents;
+  Set<String> get answeredInterrogations => _answeredInterrogations;
+  Set<String> get verifiedDeductions => _verifiedDeductions;
+  bool get timelineCompleted => _timelineCompleted;
+  SuspenseEvent? get pendingSuspenseEvent => _pendingSuspenseEvent;
 
   CaseData get currentCase {
     // Find case by number
@@ -184,6 +196,9 @@ class GameStateProvider extends ChangeNotifier {
     _currentClues.add(clue);
     await _saveService.saveClues(_currentCaseNumber, _currentClues);
     notifyListeners();
+
+    // Check for suspense events triggered by this clue
+    _checkSuspenseEvents(clue.sourceId);
   }
 
   Future<void> removeClue(String clueId) async {
@@ -264,6 +279,76 @@ class GameStateProvider extends ChangeNotifier {
     }
   }
 
+  // ============ SUSPENSE SYSTEM ============
+
+  void _checkSuspenseEvents(String clueSourceId) {
+    for (final event in currentCase.suspenseEvents) {
+      if (_firedSuspenseEvents.contains(event.id)) continue;
+      if (event.trigger == SuspenseTrigger.afterClue &&
+          event.triggerClueId == clueSourceId) {
+        _firedSuspenseEvents.add(event.id);
+        // Delay the event
+        Future.delayed(Duration(seconds: event.delaySeconds), () {
+          _pendingSuspenseEvent = event;
+          notifyListeners();
+        });
+        break; // Only fire one at a time
+      }
+    }
+  }
+
+  void dismissSuspenseEvent() {
+    _pendingSuspenseEvent = null;
+    notifyListeners();
+  }
+
+  // ============ INTERROGATION SYSTEM ============
+
+  void markInterrogationAnswered(String questionId) {
+    _answeredInterrogations.add(questionId);
+    notifyListeners();
+  }
+
+  bool isInterrogationAnswered(String questionId) =>
+      _answeredInterrogations.contains(questionId);
+
+  // ============ DEDUCTION CHECKLIST ============
+
+  void toggleDeduction(String deductionId) {
+    if (_verifiedDeductions.contains(deductionId)) {
+      _verifiedDeductions.remove(deductionId);
+    } else {
+      _verifiedDeductions.add(deductionId);
+    }
+    notifyListeners();
+  }
+
+  bool isDeductionVerified(String deductionId) =>
+      _verifiedDeductions.contains(deductionId);
+
+  bool get allDeductionsVerified {
+    final checklist = currentCase.solution.deductionChecklist;
+    if (checklist.isEmpty) return true;
+    return checklist.every((d) => _verifiedDeductions.contains(d.id));
+  }
+
+  int get verifiedDeductionCount => _verifiedDeductions.length;
+
+  // ============ EVIDENCE TIMELINE ============
+
+  void completeTimeline() {
+    _timelineCompleted = true;
+    notifyListeners();
+  }
+
+  // ============ RED HERRINGS ============
+
+  int get redHerringCount {
+    final herringIds = currentCase.solution.redHerringIds;
+    if (herringIds.isEmpty) return 0;
+    return _currentClues.where((c) => herringIds.contains(c.sourceId)).length;
+  }
+
   // Reset
   Future<void> resetCurrentCase() async {
     await _saveService.resetCase(_currentCaseNumber);
@@ -275,6 +360,11 @@ class GameStateProvider extends ChangeNotifier {
     _unlockedItemIds = {};
     _restoredItemIds = {};
     _revealedHints = {};
+    _firedSuspenseEvents = {};
+    _answeredInterrogations = {};
+    _verifiedDeductions = {};
+    _timelineCompleted = false;
+    _pendingSuspenseEvent = null;
     await _saveService.saveCaseStartTime(_currentCaseNumber, _caseStartTime!);
     notifyListeners();
   }
@@ -291,6 +381,11 @@ class GameStateProvider extends ChangeNotifier {
     _unlockedItemIds = {};
     _restoredItemIds = {};
     _revealedHints = {};
+    _firedSuspenseEvents = {};
+    _answeredInterrogations = {};
+    _verifiedDeductions = {};
+    _timelineCompleted = false;
+    _pendingSuspenseEvent = null;
     _tutorialStep = 0; // Ensure tutorial step is reset
     notifyListeners();
   }

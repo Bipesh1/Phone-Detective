@@ -7,6 +7,7 @@ import '../providers/game_state_provider.dart';
 import '../widgets/phone_frame.dart';
 import '../widgets/app_icon.dart';
 import '../widgets/tutorial_overlay.dart';
+import '../widgets/suspense_overlay.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
@@ -41,6 +42,7 @@ class _PhoneHomeScreenState extends State<PhoneHomeScreen> {
                   journalKey: _journalKey,
                 ),
                 Positioned.fill(child: _buildTutorialOverlay(context)),
+                Positioned.fill(child: _buildSuspenseOverlay(context)),
               ],
             ),
           ),
@@ -94,6 +96,21 @@ class _PhoneHomeScreenState extends State<PhoneHomeScreen> {
           onContinue: onContinue,
           targetKey: target,
           isLastStep: isLast,
+        );
+      },
+    );
+  }
+
+  Widget _buildSuspenseOverlay(BuildContext context) {
+    return Consumer<GameStateProvider>(
+      builder: (context, gameState, child) {
+        final event = gameState.pendingSuspenseEvent;
+        if (event == null) return const SizedBox.shrink();
+
+        return SuspenseOverlay(
+          key: ValueKey('suspense_${event.id}'),
+          event: event,
+          onDismiss: () => gameState.dismissSuspenseEvent(),
         );
       },
     );
@@ -226,12 +243,18 @@ class _PhoneContent extends StatelessWidget {
                               AppRoutes.detectiveJournal,
                             ),
                           ),
-                          // Row 3 - Placeholder apps
-                          _PlaceholderAppIcon(
-                            icon: Icons.calendar_today,
-                            label: 'Calendar',
+                          // Row 3 - Timeline + Interrogate + Hints + Placeholder
+                          AppIcon(
+                            icon: Icons.timeline,
+                            label: 'Timeline',
+                            backgroundColor: const Color(0xFFE91E63),
+                            onTap: () =>
+                                _navigateTo(context, AppRoutes.timelineBuilder),
                           ),
-                          _PlaceholderAppIcon(icon: Icons.map, label: 'Maps'),
+                          _PlaceholderAppIcon(
+                            icon: Icons.map,
+                            label: 'Maps',
+                          ),
                           AppIcon(
                             tutorialKey: hintsKey,
                             icon: Icons.lightbulb,

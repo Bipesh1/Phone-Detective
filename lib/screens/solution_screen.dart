@@ -1,4 +1,4 @@
-// Phone Detective - Solution Screen
+// Phone Detective - Solution Screen (Enhanced with Deduction Checklist)
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,14 +16,37 @@ class SolutionScreen extends StatefulWidget {
   State<SolutionScreen> createState() => _SolutionScreenState();
 }
 
-class _SolutionScreenState extends State<SolutionScreen> {
+class _SolutionScreenState extends State<SolutionScreen>
+    with SingleTickerProviderStateMixin {
   String? _selectedSuspectId;
   bool _isSubmitting = false;
+  late AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final gameState = Provider.of<GameStateProvider>(context);
     final solution = gameState.currentCase.solution;
+    final deductions = solution.deductionChecklist;
+    final redHerringCount = gameState.redHerringCount;
+    final allDeductionsVerified = gameState.allDeductionsVerified;
+    final canSubmit = _selectedSuspectId != null &&
+        !_isSubmitting &&
+        (deductions.isEmpty || allDeductionsVerified);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -56,7 +79,8 @@ class _SolutionScreenState extends State<SolutionScreen> {
               'Select the guilty party based on your investigation.',
               style: GoogleFonts.roboto(color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
+            // Suspect options
             ...solution.options.map((option) {
               final contact = gameState.currentCase.getContact(
                 option.contactId,
@@ -116,6 +140,160 @@ class _SolutionScreenState extends State<SolutionScreen> {
                 ),
               );
             }),
+
+            // Deduction Checklist
+            if (deductions.isNotEmpty) ...[
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Icon(Icons.fact_check, color: AppColors.clue, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'DEDUCTION CHECKLIST',
+                    style: GoogleFonts.robotoMono(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.clue,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${gameState.verifiedDeductionCount}/${deductions.length}',
+                    style: GoogleFonts.robotoMono(
+                      fontSize: 12,
+                      color: allDeductionsVerified
+                          ? AppColors.success
+                          : AppColors.textTertiary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Verify each deduction to unlock your accusation.',
+                style: GoogleFonts.roboto(
+                  fontSize: 13,
+                  color: AppColors.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Confidence progress bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: deductions.isEmpty
+                      ? 1.0
+                      : gameState.verifiedDeductionCount / deductions.length,
+                  backgroundColor: AppColors.surfaceDark,
+                  color: allDeductionsVerified
+                      ? AppColors.success
+                      : AppColors.clue,
+                  minHeight: 6,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...deductions.map((deduction) {
+                final isVerified = gameState.isDeductionVerified(deduction.id);
+                return GestureDetector(
+                  onTap: () {
+                    HapticService.lightTap();
+                    gameState.toggleDeduction(deduction.id);
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: isVerified
+                          ? AppColors.success.withValues(alpha: 0.08)
+                          : AppColors.surfaceDark,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isVerified
+                            ? AppColors.success.withValues(alpha: 0.3)
+                            : Colors.transparent,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isVerified
+                              ? Icons.check_box
+                              : Icons.check_box_outline_blank,
+                          color: isVerified
+                              ? AppColors.success
+                              : AppColors.textTertiary,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            deduction.statement,
+                            style: GoogleFonts.roboto(
+                              fontSize: 14,
+                              color: isVerified
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                              height: 1.4,
+                              decoration: isVerified
+                                  ? TextDecoration.none
+                                  : TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+
+            // Red Herring Warning
+            if (redHerringCount > 0) ...[
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.warning.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: AppColors.warning, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Possible Red Herrings',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                          Text(
+                            'You may have marked $redHerringCount misleading clue${redHerringCount > 1 ? 's' : ''} — review your evidence carefully.',
+                            style: GoogleFonts.roboto(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             // Step hints for final accusation
             Builder(
               builder: (context) {
@@ -129,36 +307,64 @@ class _SolutionScreenState extends State<SolutionScreen> {
               },
             ),
             const SizedBox(height: 32),
+
+            // Submit button
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _selectedSuspectId == null || _isSubmitting
-                    ? null
-                    : () => _submitAnswer(gameState, solution),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.success,
-                  disabledBackgroundColor: AppColors.surfaceDark,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              child: AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, child) {
+                  final glowOpacity =
+                      canSubmit ? 0.3 + (_pulseController.value * 0.3) : 0.0;
+                  return Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: canSubmit
+                          ? [
+                              BoxShadow(
+                                color: AppColors.success
+                                    .withValues(alpha: glowOpacity),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: child,
+                  );
+                },
+                child: ElevatedButton(
+                  onPressed: canSubmit
+                      ? () => _submitAnswer(gameState, solution)
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    disabledBackgroundColor: AppColors.surfaceDark,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          deductions.isNotEmpty && !allDeductionsVerified
+                              ? 'VERIFY DEDUCTIONS FIRST'
+                              : 'SUBMIT ACCUSATION',
+                          style: GoogleFonts.robotoMono(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1,
+                          ),
+                        ),
                 ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(
-                        'SUBMIT ANSWER',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
               ),
             ),
           ],
@@ -170,7 +376,9 @@ class _SolutionScreenState extends State<SolutionScreen> {
   void _submitAnswer(GameStateProvider gameState, dynamic solution) async {
     setState(() => _isSubmitting = true);
     HapticService.heavyTap();
-    await Future.delayed(const Duration(seconds: 1));
+
+    // Dramatic delay
+    await Future.delayed(const Duration(milliseconds: 1500));
 
     final selectedOption = solution.options.firstWhere(
       (o) => o.contactId == _selectedSuspectId,

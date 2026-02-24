@@ -8,6 +8,9 @@ import 'note.dart';
 import 'call_record.dart';
 import 'email.dart';
 import 'step_hint.dart';
+import 'suspense_event.dart';
+import 'timeline_event.dart';
+import 'interrogation.dart';
 
 class CaseData {
   final int caseNumber;
@@ -29,6 +32,9 @@ class CaseData {
   final String? wallpaper; // Not in DB right now (null unless you add column)
   final List<String> hints;
   final List<StepHint> stepHints;
+  final List<SuspenseEvent> suspenseEvents;
+  final List<TimelineEvent> evidenceTimeline;
+  final List<InterrogationQuestion> interrogationQuestions;
 
   const CaseData({
     required this.caseNumber,
@@ -50,6 +56,9 @@ class CaseData {
     this.wallpaper,
     this.hints = const [],
     this.stepHints = const [],
+    this.suspenseEvents = const [],
+    this.evidenceTimeline = const [],
+    this.interrogationQuestions = const [],
   });
 
   Contact? getContact(String id) {
@@ -80,6 +89,19 @@ class CaseData {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Get interrogation questions for a specific contact
+  List<InterrogationQuestion> getInterrogationQuestionsForContact(
+      String contactId) {
+    return interrogationQuestions
+        .where((q) => q.contactId == contactId)
+        .toList();
+  }
+
+  /// Check if a contact has interrogation questions
+  bool hasInterrogationQuestions(String contactId) {
+    return interrogationQuestions.any((q) => q.contactId == contactId);
   }
 
   factory CaseData.fromJson(Map<String, dynamic> json) {
@@ -133,6 +155,20 @@ class CaseData {
 
       stepHints: (json['step_hints'] as List<dynamic>? ?? [])
           .map((e) => StepHint.fromJson(e as Map<String, dynamic>))
+          .toList(),
+
+      suspenseEvents: (json['suspense_events'] as List<dynamic>? ?? [])
+          .map((e) => SuspenseEvent.fromJson(e as Map<String, dynamic>))
+          .toList(),
+
+      evidenceTimeline: (json['evidence_timeline'] as List<dynamic>? ?? [])
+          .map((e) => TimelineEvent.fromJson(e as Map<String, dynamic>))
+          .toList(),
+
+      interrogationQuestions: (json['interrogation_questions']
+                  as List<dynamic>? ??
+              [])
+          .map((e) => InterrogationQuestion.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
@@ -227,6 +263,8 @@ class CaseSolution {
   final List<String> keyClueIds; // IDs of essential clues
   final String resolution; // What happened after solving
   final List<SolutionOption> options; // Multiple choice options
+  final List<DeductionItem> deductionChecklist; // Logical deductions to verify
+  final List<String> redHerringIds; // Misleading clue IDs
 
   const CaseSolution({
     required this.guiltyContactId,
@@ -235,6 +273,8 @@ class CaseSolution {
     required this.keyClueIds,
     required this.resolution,
     required this.options,
+    this.deductionChecklist = const [],
+    this.redHerringIds = const [],
   });
 
   factory CaseSolution.fromJson(Map<String, dynamic> json) {
@@ -247,6 +287,11 @@ class CaseSolution {
       options: (json['options'] as List<dynamic>? ?? [])
           .map((e) => SolutionOption.fromJson(e as Map<String, dynamic>))
           .toList(),
+      deductionChecklist: (json['deduction_checklist'] as List<dynamic>? ?? [])
+          .map((e) => DeductionItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      redHerringIds:
+          (json['red_herrings'] as List<dynamic>? ?? []).cast<String>(),
     );
   }
 
@@ -258,6 +303,8 @@ class CaseSolution {
       'key_clue_ids': keyClueIds,
       'resolution': resolution,
       'options': options.map((e) => e.toJson()).toList(),
+      'deduction_checklist': deductionChecklist.map((e) => e.toJson()).toList(),
+      'red_herrings': redHerringIds,
     };
   }
 }

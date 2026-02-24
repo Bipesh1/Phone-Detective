@@ -270,6 +270,45 @@ class ContactDetailScreen extends StatelessWidget {
                           .toList(),
                     ),
                   ],
+                  // Interrogation button
+                  if (gameState.currentCase.hasInterrogationQuestions(
+                    contactId,
+                  )) ...[
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          HapticService.heavyTap();
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.interrogation,
+                            arguments: {'contactId': contactId},
+                          );
+                        },
+                        icon: const Icon(Icons.record_voice_over, size: 20),
+                        label: Text(
+                          'INTERROGATE',
+                          style: GoogleFonts.robotoMono(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFB71C1C),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 4,
+                          shadowColor:
+                              const Color(0xFFB71C1C).withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 40),
                 ],
               ),
