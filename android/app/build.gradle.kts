@@ -21,8 +21,8 @@ android {
         applicationId = "com.phonedetective.phone_detective"
         minSdk = flutter.minSdkVersion // or flutter.minSdkVersion
         targetSdk = 35 // or flutter.targetSdkVersion
-        versionCode = 12 // or flutter.versionCode
-        versionName = "1.1.2" // or flutter.versionName
+        versionCode = 13 // or flutter.versionCode
+        versionName = "1.1.3" // or flutter.versionName
     }
 
     compileOptions {
