@@ -11,6 +11,7 @@ import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../widgets/clue_hint_banner.dart';
 import '../widgets/voicemail_player.dart';
+import '../widgets/investigation_nav_bar.dart';
 
 class CallLogScreen extends StatelessWidget {
   const CallLogScreen({super.key});
@@ -29,6 +30,7 @@ class CallLogScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: const InvestigationNavBar(),
       appBar: AppBar(
         backgroundColor: AppColors.background,
         leading: IconButton(
@@ -48,7 +50,7 @@ class CallLogScreen extends StatelessWidget {
           ? _EmptyState()
           : Column(
               children: [
-                ClueHintBanner(clueCount: gameState.currentClues.length),
+                ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.callLog),
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),

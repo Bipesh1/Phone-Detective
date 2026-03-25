@@ -1,11 +1,11 @@
 // Phone Detective - Game State Provider
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../services/save_service.dart';
 import '../services/supabase_service.dart';
 import '../data/cases/all_cases.dart';
+import '../utils/constants.dart';
 
 class GameStateProvider extends ChangeNotifier {
   final SaveService _saveService = SaveService();
@@ -45,6 +45,7 @@ class GameStateProvider extends ChangeNotifier {
   Set<String> get unlockedNotes => _unlockedNotes;
   Set<String> get unlockedItemIds => _unlockedItemIds;
   Set<String> get restoredItemIds => _restoredItemIds;
+  Map<String, int> get revealedHints => _revealedHints;
   bool get isInitialized => _isInitialized;
   bool get isRemote => _isRemote;
   bool get hasSaveData => _saveService.hasSaveData();
@@ -87,7 +88,7 @@ class GameStateProvider extends ChangeNotifier {
         _isRemote = true;
       } else {
         // Remote returned empty list (valid connection, just no cases)
-        print('Remote DB connected but empty. No cases loaded.');
+        debugPrint('Remote DB connected but empty. No cases loaded.');
         _allCases = [];
         _isRemote = true;
       }
@@ -103,7 +104,7 @@ class GameStateProvider extends ChangeNotifier {
         _currentCaseNumber = 0; // No cases available
       }
     } catch (e) {
-      print('Failed to load remote cases: $e');
+      debugPrint('Failed to load remote cases: $e');
       // Fallback to static cases if remote fails
       if (_allCases.isEmpty) {
         _allCases = [...allCases];
@@ -159,32 +160,30 @@ class GameStateProvider extends ChangeNotifier {
   bool isCaseSolved(int caseNumber) => _solvedCases.contains(caseNumber);
 
   bool isCaseUnlocked(int caseNumber) {
-    if (caseNumber == 1) return true;
+    // Find case data for this case number
+    CaseData? caseData;
+    for (final c in _allCases) {
+      if (c.caseNumber == caseNumber) {
+        caseData = c;
+        break;
+      }
+    }
 
-    // Case unlock logic from constants
-    final requirements = {
-      2: [1],
-      3: [1],
-      4: [3],
-      5: [3],
-      6: [3],
-      7: [6],
-      8: [6],
-      9: [6],
-      10: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-    };
+    // Use DB unlock_requires if available, else fallback to hardcoded map
+    final List<int> required;
+    if (caseData != null && caseData.unlockRequires.isNotEmpty) {
+      required = caseData.unlockRequires;
+    } else {
+      required = CaseUnlock.requirements[caseNumber] ?? [];
+    }
 
-    final required = requirements[caseNumber] ?? [];
+    if (required.isEmpty) return true;
+
     return required.every((req) {
-      // If the case is already solved, requirement met
       if (_solvedCases.contains(req)) return true;
-
-      // If the required case does NOT exist in our loaded cases,
-      // treat it as "skipped" (unlocking this requirement) because we can't play it.
+      // If the required case doesn't exist in loaded cases, treat as met
       final requiredCaseExists = _allCases.any((c) => c.caseNumber == req);
       if (!requiredCaseExists) return true;
-
-      // Otherwise, the case exists but isn't solved yet -> locked
       return false;
     });
   }
@@ -287,12 +286,32 @@ class GameStateProvider extends ChangeNotifier {
       if (event.trigger == SuspenseTrigger.afterClue &&
           event.triggerClueId == clueSourceId) {
         _firedSuspenseEvents.add(event.id);
-        // Delay the event
         Future.delayed(Duration(seconds: event.delaySeconds), () {
           _pendingSuspenseEvent = event;
           notifyListeners();
         });
         break; // Only fire one at a time
+      }
+    }
+  }
+
+  /// Start timed suspense events (afterTime trigger).
+  /// Call this when the player enters the phone home screen.
+  void startTimedEvents() {
+    for (final event in currentCase.suspenseEvents) {
+      if (_firedSuspenseEvents.contains(event.id)) continue;
+      if (event.trigger == SuspenseTrigger.afterTime) {
+        _firedSuspenseEvents.add(event.id);
+        Future.delayed(Duration(seconds: event.delaySeconds), () {
+          // Only fire if no other event is pending
+          if (_pendingSuspenseEvent == null) {
+            _pendingSuspenseEvent = event;
+            notifyListeners();
+          } else {
+            // Re-queue: remove from fired so it can fire later
+            _firedSuspenseEvents.remove(event.id);
+          }
+        });
       }
     }
   }
@@ -390,6 +409,17 @@ class GameStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Per-case progress helpers (reads from save service for any case)
+  int getClueCountForCase(int caseNumber) {
+    if (caseNumber == _currentCaseNumber) return _currentClues.length;
+    return _saveService.getClues(caseNumber).length;
+  }
+
+  bool hasSavedProgressForCase(int caseNumber) {
+    return _saveService.getClues(caseNumber).isNotEmpty ||
+        _saveService.getSuspects(caseNumber).isNotEmpty;
+  }
+
   // Tutorial Management
   int get tutorialStep => _tutorialStep;
   bool get isTutorialActive => _tutorialStep > 0;
@@ -409,7 +439,7 @@ class GameStateProvider extends ChangeNotifier {
   }
 
   void nextTutorialStep() {
-    if (_tutorialStep < 5) {
+    if (_tutorialStep < 8) {
       _tutorialStep++;
 
       // Force a frame to complete before showing next step

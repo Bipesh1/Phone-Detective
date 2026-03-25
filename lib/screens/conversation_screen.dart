@@ -12,6 +12,7 @@ import '../services/haptic_service.dart';
 import '../widgets/clue_hint_banner.dart';
 import '../widgets/password_unlock_widget.dart';
 import '../widgets/data_restore_widget.dart';
+import '../widgets/investigation_nav_bar.dart';
 
 class ConversationScreen extends StatefulWidget {
   final String contactId;
@@ -88,9 +89,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const InvestigationNavBar(),
       body: Column(
         children: [
-          ClueHintBanner(clueCount: gameState.currentClues.length),
+          ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.conversation),
           // Messages
           Expanded(
             child: ListView.builder(

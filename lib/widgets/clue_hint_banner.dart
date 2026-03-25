@@ -1,15 +1,31 @@
 // Phone Detective - Clue Hint Banner Widget
-// Shows a dismissible hint about long-pressing items to mark as clues
-// Auto-hides once player has 2+ clues
+// Shows contextual guidance specific to each investigation screen.
+// Auto-hides once player has 2+ clues (they've learned the mechanic).
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/constants.dart';
 
+enum InvestigationContext {
+  messages,
+  conversation,
+  email,
+  notes,
+  callLog,
+  gallery,
+  contacts,
+  general,
+}
+
 class ClueHintBanner extends StatefulWidget {
   final int clueCount;
+  final InvestigationContext context;
 
-  const ClueHintBanner({super.key, required this.clueCount});
+  const ClueHintBanner({
+    super.key,
+    required this.clueCount,
+    this.context = InvestigationContext.general,
+  });
 
   @override
   State<ClueHintBanner> createState() => _ClueHintBannerState();
@@ -50,6 +66,8 @@ class _ClueHintBannerState extends State<ClueHintBanner>
   Widget build(BuildContext context) {
     if (!_shouldShow) return const SizedBox.shrink();
 
+    final (icon, message) = _getContextualHint();
+
     return SizeTransition(
       sizeFactor: _animation,
       child: Container(
@@ -64,11 +82,11 @@ class _ClueHintBannerState extends State<ClueHintBanner>
         ),
         child: Row(
           children: [
-            Icon(Icons.touch_app, color: AppColors.clue, size: 18),
+            Icon(icon, color: AppColors.clue, size: 18),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Long-press any item to mark as evidence',
+                message,
                 style: GoogleFonts.roboto(
                   color: AppColors.clue,
                   fontSize: 12,
@@ -88,5 +106,26 @@ class _ClueHintBannerState extends State<ClueHintBanner>
         ),
       ),
     );
+  }
+
+  (IconData, String) _getContextualHint() {
+    switch (widget.context) {
+      case InvestigationContext.messages:
+        return (Icons.chat_bubble_outline, 'Tap a conversation to read messages. Look for suspicious details.');
+      case InvestigationContext.conversation:
+        return (Icons.touch_app, 'Long-press any message to mark it as evidence.');
+      case InvestigationContext.email:
+        return (Icons.touch_app, 'Tap an email to read it. Long-press to mark as evidence.');
+      case InvestigationContext.notes:
+        return (Icons.sticky_note_2, 'Tap a note to read. Long-press to mark as evidence.');
+      case InvestigationContext.callLog:
+        return (Icons.touch_app, 'Long-press a call to mark as evidence. Check voicemails too.');
+      case InvestigationContext.gallery:
+        return (Icons.photo_camera, 'Tap a photo to view details. Look for anything suspicious.');
+      case InvestigationContext.contacts:
+        return (Icons.person_search, 'Tap a contact for details. Long-press to mark as suspect.');
+      case InvestigationContext.general:
+        return (Icons.touch_app, 'Long-press any item to mark as evidence.');
+    }
   }
 }

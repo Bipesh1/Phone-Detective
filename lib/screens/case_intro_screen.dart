@@ -407,7 +407,7 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
                     ),
                   ],
 
-                  // How to Investigate Guide
+                  // Complete Game Flow Guide
                   if (_showObjective) ...[
                     const SizedBox(height: 32),
                     FadeTransition(
@@ -437,7 +437,7 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
                                 ),
                                 const SizedBox(width: 10),
                                 Text(
-                                  'HOW TO INVESTIGATE',
+                                  'HOW TO PLAY',
                                   style: GoogleFonts.robotoMono(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
@@ -447,25 +447,91 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 16),
-                            _buildTipRow(
+
+                            const SizedBox(height: 20),
+                            _buildStepGuide(
+                              '1',
+                              'EXPLORE THE PHONE',
+                              'Open Messages, Emails, Notes, Call Log, and Gallery. Read everything carefully — timestamps, tone, and small details matter.',
                               Icons.smartphone,
-                              'Check Messages, Calls, Emails, Notes, and Gallery',
+                              AppColors.primary,
                             ),
-                            const SizedBox(height: 12),
-                            _buildTipRow(
-                              Icons.touch_app,
-                              'Long-press any item to mark as evidence',
+
+                            const SizedBox(height: 16),
+                            _buildStepGuide(
+                              '2',
+                              'COLLECT EVIDENCE',
+                              'When you find something suspicious, long-press it to mark as a clue. Clues are saved to your Detective Journal.',
+                              Icons.bookmark_add,
+                              AppColors.clue,
                             ),
-                            const SizedBox(height: 12),
-                            _buildTipRow(
-                              Icons.bookmark,
-                              'Review collected clues in Detective Journal',
+
+                            const SizedBox(height: 16),
+                            _buildStepGuide(
+                              '3',
+                              'MARK SUSPECTS',
+                              'In Contacts, long-press any person you think is involved to mark them as a suspect.',
+                              Icons.person_search,
+                              AppColors.danger,
                             ),
-                            const SizedBox(height: 12),
-                            _buildTipRow(
+
+                            const SizedBox(height: 16),
+                            _buildStepGuide(
+                              '4',
+                              'USE THE DETECTIVE JOURNAL',
+                              'The Journal has 4 tabs:\n'
+                              '  Clues — all evidence you collected\n'
+                              '  Suspects — people you marked\n'
+                              '  Timeline — reconstruct the order of events\n'
+                              '  Notes — write your own theories',
+                              Icons.menu_book,
+                              const Color(0xFFAF52DE),
+                            ),
+
+                            const SizedBox(height: 16),
+                            _buildStepGuide(
+                              '5',
+                              'RECONSTRUCT THE TIMELINE',
+                              'In the Journal Timeline tab, arrange events in the correct chronological order. This helps you understand what really happened.',
+                              Icons.timeline,
+                              const Color(0xFFE91E63),
+                            ),
+
+                            const SizedBox(height: 16),
+                            _buildStepGuide(
+                              '6',
+                              'SOLVE THE CASE',
+                              'When you have enough evidence, tap "Solve" to make your accusation. Choose who is responsible, verify your deductions, and submit. Get it right to close the case!',
                               Icons.gavel,
-                              'When ready, tap "Solve Case" in the Journal',
+                              AppColors.success,
+                            ),
+
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.amber.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.lightbulb, color: Colors.amber, size: 16),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Stuck? Use the Hints app on the phone for guidance without spoilers.',
+                                      style: GoogleFonts.roboto(
+                                        fontSize: 12,
+                                        color: Colors.amber,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -529,23 +595,65 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
     );
   }
 
-  Widget _buildTipRow(IconData icon, String text) {
+  Widget _buildStepGuide(
+    String stepNumber,
+    String title,
+    String description,
+    IconData icon,
+    Color color,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Icon(icon, color: AppColors.textSecondary, size: 16),
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+            border: Border.all(color: color.withValues(alpha: 0.4)),
+          ),
+          child: Center(
+            child: Text(
+              stepNumber,
+              style: GoogleFonts.robotoMono(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(
-            text,
-            style: GoogleFonts.roboto(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-              height: 1.4,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: color, size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    title,
+                    style: GoogleFonts.robotoMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: GoogleFonts.roboto(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ],
           ),
         ),
       ],

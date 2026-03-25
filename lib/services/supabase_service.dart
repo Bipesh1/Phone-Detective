@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/models.dart';
 
@@ -21,19 +22,17 @@ class SupabaseService {
       final rows = (data as List)
           .map((e) => e as Map<String, dynamic>)
           .toList();
-      print(rows);
-
       final cases = <CaseData>[];
       for (final row in rows) {
         try {
           cases.add(CaseData.fromJson(row));
         } catch (e) {
-          print('Error parsing case ${row['case_number'] ?? 'unknown'}: $e');
+          debugPrint('Error parsing case ${row['case_number'] ?? 'unknown'}: $e');
         }
       }
       return cases;
     } catch (e) {
-      print('Error fetching cases: $e');
+      debugPrint('Error fetching cases: $e');
       rethrow;
     }
   }
@@ -43,7 +42,7 @@ class SupabaseService {
       await _client.from('cases').select('id').limit(1);
       return true;
     } catch (e) {
-      print('Connection check failed: $e');
+      debugPrint('Connection check failed: $e');
       return false;
     }
   }

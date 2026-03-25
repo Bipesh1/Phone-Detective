@@ -11,6 +11,7 @@ import '../services/haptic_service.dart';
 import '../widgets/clue_hint_banner.dart';
 import '../widgets/password_unlock_widget.dart';
 import '../widgets/data_restore_widget.dart';
+import '../widgets/investigation_nav_bar.dart';
 
 class EmailAppScreen extends StatefulWidget {
   const EmailAppScreen({super.key});
@@ -30,6 +31,7 @@ class _EmailAppScreenState extends State<EmailAppScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: const InvestigationNavBar(),
       appBar: AppBar(
         backgroundColor: AppColors.background,
         leading: IconButton(
@@ -72,7 +74,7 @@ class _EmailAppScreenState extends State<EmailAppScreen> {
             )
           : Column(
               children: [
-                ClueHintBanner(clueCount: gameState.currentClues.length),
+                ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.email),
                 Expanded(
                   child: ListView.builder(
                     itemCount: emails.length,

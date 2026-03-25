@@ -165,10 +165,11 @@ class EmailAttachment {
 
   factory EmailAttachment.fromJson(Map<String, dynamic> json) {
     return EmailAttachment(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      type: json['type'] as String,
-      sizeBytes: json['sizeBytes'] as int,
+      id: (json['id'] as String?) ?? '',
+      name: (json['name'] as String?) ?? 'file',
+      type: (json['type'] as String?) ?? 'unknown',
+      sizeBytes: (json['sizeBytes'] as num?)?.toInt() ??
+          (json['size_bytes'] as num?)?.toInt() ?? 0,
     );
   }
 }

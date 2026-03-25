@@ -61,10 +61,12 @@ class Photo {
   factory Photo.fromJson(Map<String, dynamic> json) {
     return Photo(
       id: (json['id'] as String?) ?? 'unknown',
-      title: json['title'] as String?,
+      title: json['title'] as String? ?? json['caption'] as String?,
       description: json['description'] as String?,
       dateTaken:
-          DateTime.tryParse(json['dateTaken'] as String? ?? '') ??
+          DateTime.tryParse(json['dateTaken'] as String? ??
+              json['timestamp'] as String? ??
+              '') ??
           DateTime.now(),
       location: json['location'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
@@ -74,8 +76,8 @@ class Photo {
               ?.map((h) => PhotoHotspot.fromJson(h as Map<String, dynamic>))
               .toList() ??
           [],
-      isHidden: json['isHidden'] as bool? ?? false,
-      albumId: json['albumId'] as String?,
+      isHidden: json['isHidden'] as bool? ?? json['is_hidden'] as bool? ?? false,
+      albumId: json['albumId'] as String? ?? json['album_id'] as String?,
     );
   }
 }

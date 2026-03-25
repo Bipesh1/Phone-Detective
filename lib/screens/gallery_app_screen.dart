@@ -8,6 +8,7 @@ import '../widgets/photo_grid_item.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
+import '../widgets/investigation_nav_bar.dart';
 
 class GalleryAppScreen extends StatefulWidget {
   const GalleryAppScreen({super.key});
@@ -41,6 +42,7 @@ class _GalleryAppScreenState extends State<GalleryAppScreen>
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: const InvestigationNavBar(),
       appBar: AppBar(
         backgroundColor: AppColors.background,
         leading: IconButton(
@@ -144,7 +146,8 @@ class _PhotoGrid extends StatelessWidget {
           index: index,
           isMarkedAsClue: isClue,
           heroTag: 'photo_${photo.id}',
-          title: photo.title,
+          title: photo.title ?? photo.description,
+          description: photo.description,
           dateTaken: photo.displayDate,
           hasHotspots: photo.hotspots.isNotEmpty,
           onTap: () {
@@ -203,19 +206,41 @@ class _HiddenPhotosSectionState extends State<_HiddenPhotosSection> {
     }
 
     if (!_isUnlocked) {
+      // Collect valid passwords from hidden photos that have passwords,
+      // or from locked notes in the case
+      final validPasswords = <String>{};
+      // Fallback: accept common case passwords or let the gameState handle it
+      final gameState = Provider.of<GameStateProvider>(context, listen: false);
+      // Check locked notes for password values as valid hidden album passwords
+      for (final note in gameState.currentCase.notes) {
+        if (note.isLocked && note.password != null) {
+          validPasswords.add(note.password!.toLowerCase());
+        }
+      }
+      // Check locked messages for passwords
+      for (final conv in gameState.currentCase.conversations) {
+        for (final msg in conv.messages) {
+          if (msg.isLocked && msg.password != null) {
+            validPasswords.add(msg.password!.toLowerCase());
+          }
+        }
+      }
+      // If no passwords found in case data, the hidden album has no valid password
+      // (case authors should set passwords in their data)
+
       return _LockedView(
         onUnlock: (password) {
-          // Check if password matches any clue hint
-          if (password.toLowerCase() == 'anniversary' ||
-              password.toLowerCase() == '1234' ||
-              password.isNotEmpty) {
+          final input = password.toLowerCase().trim();
+          // Accept if input matches any case password, or if no passwords configured (dev mode)
+          if (input.isNotEmpty &&
+              (validPasswords.isEmpty || validPasswords.contains(input))) {
             setState(() => _isUnlocked = true);
             HapticService.heavyTap();
           } else {
             HapticService.vibrate();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Incorrect password'),
+                content: Text('Incorrect password — look for clues in the evidence'),
                 backgroundColor: AppColors.danger,
               ),
             );

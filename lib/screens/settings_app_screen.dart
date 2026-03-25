@@ -30,36 +30,6 @@ class SettingsAppScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          // Account Section
-          _SettingsSection(
-            title: 'ACCOUNT',
-            children: [
-              _SettingsTile(
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.primary,
-                  child: const Icon(Icons.person, color: Colors.white),
-                ),
-                title: 'Phone Owner',
-                subtitle: 'Evidence device',
-              ),
-            ],
-          ),
-          // Phone Section
-          _SettingsSection(
-            title: 'PHONE',
-            children: [
-              _SettingsTile(
-                icon: Icons.storage,
-                title: 'Storage',
-                subtitle: '12.3 GB used of 64 GB',
-              ),
-              _SettingsTile(
-                icon: Icons.info_outline,
-                title: 'About',
-                subtitle: 'iPhone 13 Pro • iOS 16.2',
-              ),
-            ],
-          ),
           // Game Section
           _SettingsSection(
             title: 'GAME',
@@ -217,7 +187,6 @@ class _SettingsSection extends StatelessWidget {
 
 class _SettingsTile extends StatelessWidget {
   final IconData? icon;
-  final Widget? leading;
   final String title;
   final String? subtitle;
   final VoidCallback? onTap;
@@ -225,7 +194,6 @@ class _SettingsTile extends StatelessWidget {
 
   const _SettingsTile({
     this.icon,
-    this.leading,
     required this.title,
     this.subtitle,
     this.onTap,
@@ -236,11 +204,9 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: onTap,
-      leading:
-          leading ??
-          (icon != null
-              ? Icon(icon, color: textColor ?? AppColors.textSecondary)
-              : null),
+      leading: icon != null
+          ? Icon(icon, color: textColor ?? AppColors.textSecondary)
+          : null,
       title: Text(
         title,
         style: GoogleFonts.roboto(color: textColor ?? AppColors.textPrimary),

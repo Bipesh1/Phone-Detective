@@ -1,4 +1,5 @@
 // Phone Detective - Case Complete Screen
+// Shown after submitting accusation — reveals outcome, culprit details, and stats.
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -24,27 +25,50 @@ class CaseCompleteScreen extends StatefulWidget {
 
 class _CaseCompleteScreenState extends State<CaseCompleteScreen>
     with TickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+  late AnimationController _iconController;
+  late AnimationController _contentController;
+  late Animation<double> _iconScale;
+  late Animation<double> _contentFade;
+  late Animation<Offset> _contentSlide;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+
+    _iconController = AnimationController(
+      duration: const Duration(milliseconds: 700),
+      vsync: this,
+    );
+    _contentController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
-    _controller.forward();
+
+    _iconScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _iconController, curve: Curves.elasticOut),
+    );
+    _contentFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _contentController, curve: Curves.easeOut),
+    );
+    _contentSlide = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _contentController, curve: Curves.easeOut),
+    );
+
+    _iconController.forward();
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) _contentController.forward();
+    });
+
     HapticService.heavyTap();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _iconController.dispose();
+    _contentController.dispose();
     super.dispose();
   }
 
@@ -52,6 +76,11 @@ class _CaseCompleteScreenState extends State<CaseCompleteScreen>
   Widget build(BuildContext context) {
     final gameState = Provider.of<GameStateProvider>(context);
     final caseData = gameState.currentCase;
+    final solution = caseData.solution;
+    final culprit = caseData.getContact(solution.guiltyContactId);
+    final size = MediaQuery.of(context).size;
+
+    final accentColor = widget.isCorrect ? AppColors.success : AppColors.danger;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -61,222 +90,143 @@ class _CaseCompleteScreenState extends State<CaseCompleteScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.success.withValues(alpha: 0.2),
+              accentColor.withValues(alpha: 0.15),
               AppColors.background,
+              const Color(0xFF080810),
             ],
+            stops: const [0.0, 0.4, 1.0],
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check_circle,
-                        color: AppColors.success,
-                        size: 80,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'CASE SOLVED!',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.success,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    caseData.title,
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Detective Rank
-                  _DetectiveRank(
-                    cluesFound: gameState.currentClues.length,
-                    totalClues: caseData.totalClues,
-                    redHerringsMarked: gameState.redHerringCount,
-                    timelineCompleted: gameState.timelineCompleted,
-                  ),
-                  const SizedBox(height: 32),
-                  // Stats
-                  _StatCard(
-                    children: [
-                      _StatRow(
-                        label: 'Time Taken',
-                        value: _formatDuration(widget.timeTaken),
-                      ),
-                      _StatRow(
-                        label: 'Clues Found',
-                        value:
-                            '${gameState.currentClues.length}/${caseData.totalClues}',
-                      ),
-                      _StatRow(
-                        label: 'Suspects Marked',
-                        value: '${gameState.currentSuspects.length}',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  // Resolution
-                  Container(
-                    padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: size.width < 360 ? 16 : 24,
+              vertical: 24,
+            ),
+            child: Column(
+              children: [
+                // ── Outcome Icon ──
+                ScaleTransition(
+                  scale: _iconScale,
+                  child: Container(
+                    width: 100,
+                    height: 100,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
-                      borderRadius: BorderRadius.circular(16),
+                      color: accentColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.4),
+                        width: 2,
+                      ),
                     ),
+                    child: Icon(
+                      widget.isCorrect ? Icons.gavel : Icons.close_rounded,
+                      color: accentColor,
+                      size: 52,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Headline ──
+                SlideTransition(
+                  position: _contentSlide,
+                  child: FadeTransition(
+                    opacity: _contentFade,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Resolution',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
+                          widget.isCorrect ? 'CASE CLOSED!' : 'WRONG SUSPECT',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: size.width < 360 ? 28 : 34,
+                            fontWeight: FontWeight.bold,
+                            color: accentColor,
+                            letterSpacing: 1,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
-                          caseData.solution.resolution,
-                          style: GoogleFonts.roboto(
-                            color: AppColors.textPrimary,
-                            height: 1.5,
+                          caseData.title,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            color: AppColors.textSecondary,
                           ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Detective rank badge
+                        _DetectiveRank(
+                          isCorrect: widget.isCorrect,
+                          cluesFound: gameState.currentClues.length,
+                          totalClues: caseData.totalClues,
+                          redHerringsMarked: gameState.redHerringCount,
+                          timelineCompleted: gameState.timelineCompleted,
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // ── Culprit Reveal ──
+                        _CulpritCard(
+                          isCorrect: widget.isCorrect,
+                          culpritName: culprit?.fullName ?? solution.guiltyContactId,
+                          culpritInitials: culprit?.initials ?? '?',
+                          culpritColor: culprit?.avatarColor ?? AppColors.danger,
+                          motive: solution.motive,
+                          method: solution.method,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // ── Stats Card ──
+                        _StatsCard(
+                          timeTaken: widget.timeTaken,
+                          cluesFound: gameState.currentClues.length,
+                          totalClues: caseData.totalClues,
+                          suspectsMarked: gameState.currentSuspects.length,
+                        ),
+
+                        // ── Resolution ──
+                        if (widget.isCorrect &&
+                            solution.resolution.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          _ResolutionCard(resolution: solution.resolution),
+                        ],
+
+                        const SizedBox(height: 32),
+
+                        // ── Actions ──
+                        _ActionButtons(
+                          isCorrect: widget.isCorrect,
+                          gameState: gameState,
+                          caseNumber: caseData.caseNumber,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 40),
-                  // Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pushReplacementNamed(
-                            context,
-                            AppRoutes.mainMenu,
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            side: const BorderSide(color: AppColors.primary),
-                          ),
-                          child: const Text('MENU'),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            final nextCase = caseData.caseNumber + 1;
-                            if (nextCase <= 10 &&
-                                gameState.isCaseUnlocked(nextCase)) {
-                              gameState.startCase(nextCase);
-                              Navigator.pushReplacementNamed(
-                                context,
-                                AppRoutes.caseIntro,
-                              );
-                            } else {
-                              Navigator.pushReplacementNamed(
-                                context,
-                                AppRoutes.caseSelect,
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: const Text('NEXT CASE'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
-
-  String _formatDuration(Duration d) {
-    final hours = d.inHours;
-    final minutes = d.inMinutes % 60;
-    if (hours > 0) return '${hours}h ${minutes}m';
-    return '${minutes}m';
-  }
 }
 
-class _StatCard extends StatelessWidget {
-  final List<Widget> children;
-  const _StatCard({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundSecondary,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(children: children),
-    );
-  }
-}
-
-class _StatRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _StatRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.roboto(color: AppColors.textSecondary),
-          ),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// ─── Detective Rank ──────────────────────────────────────────────────────────
 
 class _DetectiveRank extends StatelessWidget {
+  final bool isCorrect;
   final int cluesFound;
   final int totalClues;
   final int redHerringsMarked;
   final bool timelineCompleted;
 
   const _DetectiveRank({
+    required this.isCorrect,
     required this.cluesFound,
     required this.totalClues,
     required this.redHerringsMarked,
@@ -284,6 +234,7 @@ class _DetectiveRank extends StatelessWidget {
   });
 
   String get rank {
+    if (!isCorrect) return '🔎 STILL LEARNING';
     double score = 0;
     if (totalClues > 0) score += (cluesFound / totalClues) * 40;
     if (redHerringsMarked == 0) score += 30;
@@ -292,21 +243,21 @@ class _DetectiveRank extends StatelessWidget {
     if (score >= 90) return '⭐ MASTER DETECTIVE';
     if (score >= 70) return '🔍 SENIOR DETECTIVE';
     if (score >= 50) return '🕵️ DETECTIVE';
-    return '📋 ROOKIE';
+    return '📋 ROOKIE DETECTIVE';
   }
 
   Color get rankColor {
-    final r = rank;
-    if (r.contains('MASTER')) return const Color(0xFFFFD700);
-    if (r.contains('SENIOR')) return const Color(0xFFC0C0C0);
-    if (r.contains('DETECTIVE')) return const Color(0xFFCD7F32);
+    if (!isCorrect) return AppColors.textSecondary;
+    if (rank.contains('MASTER')) return const Color(0xFFFFD700);
+    if (rank.contains('SENIOR')) return const Color(0xFFC0C0C0);
+    if (rank.contains('DETECTIVE')) return const Color(0xFFCD7F32);
     return AppColors.textSecondary;
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       decoration: BoxDecoration(
         color: rankColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
@@ -315,12 +266,406 @@ class _DetectiveRank extends StatelessWidget {
       child: Text(
         rank,
         style: GoogleFonts.robotoMono(
-          fontSize: 14,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           color: rankColor,
-          letterSpacing: 2,
+          letterSpacing: 1.5,
         ),
       ),
+    );
+  }
+}
+
+// ─── Culprit Reveal Card ─────────────────────────────────────────────────────
+
+class _CulpritCard extends StatelessWidget {
+  final bool isCorrect;
+  final String culpritName;
+  final String culpritInitials;
+  final Color culpritColor;
+  final String motive;
+  final String method;
+
+  const _CulpritCard({
+    required this.isCorrect,
+    required this.culpritName,
+    required this.culpritInitials,
+    required this.culpritColor,
+    required this.motive,
+    required this.method,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundSecondary,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: (isCorrect ? AppColors.success : AppColors.danger)
+              .withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isCorrect ? Icons.check_circle : Icons.info_outline,
+                color: isCorrect ? AppColors.success : AppColors.danger,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isCorrect ? 'THE CULPRIT WAS...' : 'THE REAL CULPRIT',
+                style: GoogleFonts.robotoMono(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: isCorrect ? AppColors.success : AppColors.danger,
+                  letterSpacing: 2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: culpritColor,
+                child: Text(
+                  culpritInitials,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  culpritName,
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (motive.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _FactRow(label: 'MOTIVE', value: motive),
+          ],
+          if (method.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _FactRow(label: 'METHOD', value: method),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FactRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _FactRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.robotoMono(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textTertiary,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: GoogleFonts.roboto(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Stats Card ──────────────────────────────────────────────────────────────
+
+class _StatsCard extends StatelessWidget {
+  final Duration timeTaken;
+  final int cluesFound;
+  final int totalClues;
+  final int suspectsMarked;
+
+  const _StatsCard({
+    required this.timeTaken,
+    required this.cluesFound,
+    required this.totalClues,
+    required this.suspectsMarked,
+  });
+
+  String _formatDuration(Duration d) {
+    final hours = d.inHours;
+    final minutes = d.inMinutes % 60;
+    final seconds = d.inSeconds % 60;
+    if (hours > 0) return '${hours}h ${minutes}m';
+    if (minutes > 0) return '${minutes}m ${seconds}s';
+    return '${seconds}s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          _StatRow(
+            icon: Icons.timer_outlined,
+            label: 'Time',
+            value: _formatDuration(timeTaken),
+          ),
+          const Divider(color: Colors.white12, height: 16),
+          _StatRow(
+            icon: Icons.bookmark,
+            label: 'Clues Found',
+            value: '$cluesFound / $totalClues',
+            valueColor:
+                cluesFound == totalClues ? AppColors.success : AppColors.clue,
+          ),
+          const Divider(color: Colors.white12, height: 16),
+          _StatRow(
+            icon: Icons.person_search,
+            label: 'Suspects Marked',
+            value: '$suspectsMarked',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  const _StatRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.textTertiary, size: 16),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: GoogleFonts.roboto(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+            color: valueColor ?? AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Resolution Card ─────────────────────────────────────────────────────────
+
+class _ResolutionCard extends StatelessWidget {
+  final String resolution;
+  const _ResolutionCard({required this.resolution});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundSecondary,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.auto_stories,
+                color: AppColors.primary,
+                size: 15,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'CASE RESOLUTION',
+                style: GoogleFonts.robotoMono(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                  letterSpacing: 2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            resolution,
+            style: GoogleFonts.roboto(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+              height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Action Buttons ──────────────────────────────────────────────────────────
+
+class _ActionButtons extends StatelessWidget {
+  final bool isCorrect;
+  final GameStateProvider gameState;
+  final int caseNumber;
+
+  const _ActionButtons({
+    required this.isCorrect,
+    required this.gameState,
+    required this.caseNumber,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Primary action
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              HapticService.mediumTap();
+              final nextCase = caseNumber + 1;
+              if (isCorrect &&
+                  nextCase <= 10 &&
+                  gameState.isCaseUnlocked(nextCase)) {
+                gameState.startCase(nextCase);
+                Navigator.pushReplacementNamed(context, AppRoutes.caseIntro);
+              } else {
+                Navigator.pushReplacementNamed(context, AppRoutes.caseSelect);
+              }
+            },
+            icon: Icon(
+              isCorrect ? Icons.arrow_forward : Icons.folder_open,
+              color: Colors.white,
+            ),
+            label: Text(
+              isCorrect ? 'NEXT CASE' : 'CHOOSE ANOTHER CASE',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Secondary actions row
+        Row(
+          children: [
+            // Menu
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.pushReplacementNamed(
+                  context,
+                  AppRoutes.mainMenu,
+                ),
+                icon: const Icon(Icons.home, size: 16),
+                label: const Text('Menu'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                  side: const BorderSide(color: Colors.white24),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+
+            if (!isCorrect) ...[
+              const SizedBox(width: 12),
+              // Retry
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    HapticService.lightTap();
+                    Navigator.pushReplacementNamed(
+                      context,
+                      AppRoutes.phoneHome,
+                    );
+                  },
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Try Again'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.warning,
+                    side: const BorderSide(color: AppColors.warning),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }

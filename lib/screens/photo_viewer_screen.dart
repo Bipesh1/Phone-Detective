@@ -1,12 +1,15 @@
 // Phone Detective - Photo Viewer Screen
+// Text-based evidence viewer: shows photo descriptions as forensic evidence cards
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/game_state_provider.dart';
 import '../models/clue.dart';
+import '../models/photo.dart';
 import '../utils/constants.dart';
 import '../services/haptic_service.dart';
+import '../widgets/investigation_nav_bar.dart';
 
 class PhotoViewerScreen extends StatefulWidget {
   final String photoId;
@@ -22,38 +25,20 @@ class PhotoViewerScreen extends StatefulWidget {
   State<PhotoViewerScreen> createState() => _PhotoViewerScreenState();
 }
 
-class _PhotoViewerScreenState extends State<PhotoViewerScreen>
-    with TickerProviderStateMixin {
+class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
   late PageController _pageController;
   late int _currentIndex;
-  bool _showOverlay = true;
-  bool _showMetadata = false;
-  final TransformationController _transformController =
-      TransformationController();
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.photoIndex;
     _pageController = PageController(initialPage: _currentIndex);
-
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _pulseAnimation = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    _transformController.dispose();
-    _pulseController.dispose();
     super.dispose();
   }
 
@@ -67,211 +52,69 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen>
         : null;
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: GestureDetector(
-        onTap: () {
-          setState(() => _showOverlay = !_showOverlay);
-        },
-        child: Stack(
-          fit: StackFit.expand,
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.backgroundSecondary,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.primary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Photo PageView
-            PageView.builder(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() => _currentIndex = index);
-                _transformController.value = Matrix4.identity();
-              },
-              itemCount: photos.length,
-              itemBuilder: (context, index) {
-                final photo = photos[index];
-                return Hero(
-                  tag: 'photo_${photo.id}',
-                  child: InteractiveViewer(
-                    transformationController: _transformController,
-                    minScale: 1.0,
-                    maxScale: 4.0,
-                    child: _PhotoPlaceholder(
-                      index: index,
-                      hotspots: photo.hotspots,
-                      pulseAnimation: _pulseAnimation,
-                      onHotspotTap: (hotspot) =>
-                          _showHotspotDetail(hotspot, gameState),
-                    ),
-                  ),
-                );
-              },
+            Text(
+              'Evidence Photo',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            // Top overlay
-            if (_showOverlay)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).padding.top + 8,
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.7),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${_currentIndex + 1} of ${photos.length}',
-                            style: GoogleFonts.roboto(
-                              color: Colors.white,
-                              fontSize: 16,
-                            ),
-                          ),
-                          if (currentPhoto?.title != null)
-                            Text(
-                              currentPhoto!.title!,
-                              style: GoogleFonts.roboto(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                        ],
-                      ),
-                      // Hotspot count badge
-                      currentPhoto != null && currentPhoto.hotspots.isNotEmpty
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.8),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.search,
-                                      color: Colors.white, size: 14),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${currentPhoto.hotspots.length}',
-                                    style: GoogleFonts.roboto(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : const SizedBox(width: 48),
-                    ],
-                  ),
-                ),
+            Text(
+              '${_currentIndex + 1} of ${photos.length}',
+              style: GoogleFonts.roboto(
+                fontSize: 11,
+                color: AppColors.textTertiary,
               ),
-            // Bottom overlay
-            if (_showOverlay && currentPhoto != null)
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: EdgeInsets.only(
-                    top: 24,
-                    left: 16,
-                    right: 16,
-                    bottom: MediaQuery.of(context).padding.bottom + 16,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.8),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _ActionButton(
-                            icon: Icons.info_outline,
-                            label: 'Info',
-                            onTap: () {
-                              setState(() => _showMetadata = !_showMetadata);
-                            },
-                          ),
-                          _ActionButton(
-                            icon: gameState.isClueMarked(currentPhoto.id)
-                                ? Icons.bookmark
-                                : Icons.bookmark_border,
-                            label: gameState.isClueMarked(currentPhoto.id)
-                                ? 'Clue'
-                                : 'Save',
-                            color: gameState.isClueMarked(currentPhoto.id)
-                                ? AppColors.clue
-                                : null,
-                            onTap: () => _toggleClue(currentPhoto, gameState),
-                          ),
-                          _ActionButton(
-                            icon: Icons.search,
-                            label: 'Inspect',
-                            onTap: () {
-                              HapticService.lightTap();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    currentPhoto.hotspots.isEmpty
-                                        ? 'No hidden details found'
-                                        : '${currentPhoto.hotspots.length} discoverable area${currentPhoto.hotspots.length > 1 ? 's' : ''} — tap the pulsing circles',
-                                  ),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                      if (_showMetadata) ...[
-                        const SizedBox(height: 20),
-                        _MetadataSection(photo: currentPhoto),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
+            ),
           ],
         ),
+        actions: [
+          if (currentPhoto != null)
+            IconButton(
+              icon: Icon(
+                gameState.isClueMarked(currentPhoto.id)
+                    ? Icons.bookmark
+                    : Icons.bookmark_border,
+                color: gameState.isClueMarked(currentPhoto.id)
+                    ? AppColors.clue
+                    : AppColors.textSecondary,
+              ),
+              onPressed: () => _toggleClue(currentPhoto, gameState),
+            ),
+        ],
+      ),
+      bottomNavigationBar: const InvestigationNavBar(),
+      body: PageView.builder(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() => _currentIndex = index);
+        },
+        itemCount: photos.length,
+        itemBuilder: (context, index) {
+          final photo = photos[index];
+          return _PhotoEvidenceCard(
+            photo: photo,
+            gameState: gameState,
+            onToggleClue: () => _toggleClue(photo, gameState),
+            onHotspotTap: (hotspot) => _showHotspotDetail(hotspot, gameState),
+          );
+        },
       ),
     );
   }
 
-  void _toggleClue(dynamic photo, GameStateProvider gameState) {
+  void _toggleClue(Photo photo, GameStateProvider gameState) {
     HapticService.mediumTap();
 
     if (gameState.isClueMarked(photo.id)) {
@@ -287,7 +130,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen>
         id: photo.id,
         type: ClueType.photo,
         sourceId: photo.id,
-        preview: photo.title ?? 'Photo ${_currentIndex + 1}',
+        preview: photo.title ?? photo.description ?? 'Photo ${_currentIndex + 1}',
         foundAt: DateTime.now(),
       );
       gameState.addClue(clue);
@@ -296,7 +139,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen>
         SnackBar(
           content: Row(
             children: [
-              Icon(Icons.bookmark, color: AppColors.clue),
+              const Icon(Icons.bookmark, color: AppColors.clue),
               const SizedBox(width: 8),
               const Text('Added to Detective Journal'),
             ],
@@ -307,7 +150,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen>
     }
   }
 
-  void _showHotspotDetail(dynamic hotspot, GameStateProvider gameState) {
+  void _showHotspotDetail(PhotoHotspot hotspot, GameStateProvider gameState) {
     HapticService.mediumTap();
     final isClue = gameState.isClueMarked(hotspot.id);
 
@@ -318,7 +161,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.search, color: AppColors.clue),
+            const Icon(Icons.search, color: AppColors.clue),
             const SizedBox(width: 8),
             Text(
               'Discovery!',
@@ -409,214 +252,298 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen>
   }
 }
 
-class _PhotoPlaceholder extends StatelessWidget {
-  final int index;
-  final List<dynamic> hotspots;
-  final Function(dynamic) onHotspotTap;
-  final Animation<double> pulseAnimation;
+// ─── Evidence Card ──────────────────────────────────────────────────────────
 
-  const _PhotoPlaceholder({
-    required this.index,
-    required this.hotspots,
+class _PhotoEvidenceCard extends StatelessWidget {
+  final Photo photo;
+  final GameStateProvider gameState;
+  final VoidCallback onToggleClue;
+  final Function(PhotoHotspot) onHotspotTap;
+
+  const _PhotoEvidenceCard({
+    required this.photo,
+    required this.gameState,
+    required this.onToggleClue,
     required this.onHotspotTap,
-    required this.pulseAnimation,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colors = [
-      const Color(0xFF2C3E50),
-      const Color(0xFF34495E),
-      const Color(0xFF1A252F),
-      const Color(0xFF243447),
-    ];
+    final isClue = gameState.isClueMarked(photo.id);
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                colors[index % colors.length],
-                colors[(index + 1) % colors.length],
-              ],
-            ),
-          ),
-          child: Center(
-            child: Icon(
-              Icons.image,
-              size: 100,
-              color: Colors.white.withValues(alpha: 0.1),
-            ),
-          ),
-        ),
-        // Pulsing Hotspots
-        ...hotspots.map(
-          (hotspot) => Positioned(
-            left: hotspot.x * MediaQuery.of(context).size.width - 22,
-            top: hotspot.y * MediaQuery.of(context).size.height - 22,
-            child: GestureDetector(
-              onTap: () => onHotspotTap(hotspot),
-              child: AnimatedBuilder(
-                animation: pulseAnimation,
-                builder: (context, child) {
-                  return Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.clue
-                            .withValues(alpha: pulseAnimation.value),
-                        width: 2.5,
-                      ),
-                      color: AppColors.clue
-                          .withValues(alpha: pulseAnimation.value * 0.25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.clue
-                              .withValues(alpha: pulseAnimation.value * 0.4),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Icon(Icons.search, color: AppColors.clue, size: 20),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? color;
-
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color ?? Colors.white, size: 26),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: GoogleFonts.roboto(
-              color: color ?? Colors.white70,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetadataSection extends StatelessWidget {
-  final dynamic photo;
-
-  const _MetadataSection({required this.photo});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _MetadataRow(
-            icon: Icons.calendar_today,
-            label: 'Date',
-            value: photo.displayDate,
+          // Photo description card (main content)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSecondary,
+              borderRadius: BorderRadius.circular(16),
+              border: isClue
+                  ? Border.all(color: AppColors.clue.withValues(alpha: 0.5), width: 1.5)
+                  : Border.all(color: Colors.white10),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with icon and title
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _getAccentColor().withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        _getPhotoIcon(),
+                        color: _getAccentColor(),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (photo.title != null)
+                            Text(
+                              photo.title!,
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                                height: 1.3,
+                              ),
+                            ),
+                          const SizedBox(height: 2),
+                          Text(
+                            photo.displayDate,
+                            style: GoogleFonts.robotoMono(
+                              fontSize: 11,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (isClue)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.clue.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.bookmark, color: AppColors.clue, size: 12),
+                            const SizedBox(width: 3),
+                            Text(
+                              'CLUE',
+                              style: GoogleFonts.robotoMono(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.clue,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+
+                if (photo.description != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceDark,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      photo.description!,
+                      style: GoogleFonts.roboto(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                        height: 1.65,
+                      ),
+                    ),
+                  ),
+                ],
+
+                if (photo.location != null) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, color: AppColors.textTertiary, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        photo.location!,
+                        style: GoogleFonts.roboto(
+                          fontSize: 12,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
-          if (photo.location != null)
-            _MetadataRow(
-              icon: Icons.location_on,
-              label: 'Location',
-              value: photo.location!,
+
+          const SizedBox(height: 12),
+
+          // Hotspots section
+          if (photo.hotspots.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.search, color: AppColors.primary, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        'INSPECT THIS PHOTO',
+                        style: GoogleFonts.robotoMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${photo.hotspots.length} detail${photo.hotspots.length > 1 ? "s" : ""}',
+                        style: GoogleFonts.roboto(
+                          fontSize: 11,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ...photo.hotspots.map((hotspot) {
+                    final isHotspotClue = gameState.isClueMarked(hotspot.id);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: InkWell(
+                        onTap: () => onHotspotTap(hotspot),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isHotspotClue
+                                ? AppColors.clue.withValues(alpha: 0.1)
+                                : AppColors.backgroundSecondary,
+                            borderRadius: BorderRadius.circular(10),
+                            border: isHotspotClue
+                                ? Border.all(color: AppColors.clue.withValues(alpha: 0.3))
+                                : null,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isHotspotClue ? Icons.bookmark : Icons.touch_app,
+                                color: isHotspotClue ? AppColors.clue : AppColors.primary,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  isHotspotClue
+                                      ? hotspot.description
+                                      : 'Tap to examine detail',
+                                  style: GoogleFonts.roboto(
+                                    fontSize: 13,
+                                    color: isHotspotClue
+                                        ? AppColors.textSecondary
+                                        : AppColors.primary,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 12,
+                                color: AppColors.textTertiary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
             ),
-          if (photo.title != null)
-            _MetadataRow(
-              icon: Icons.label,
-              label: 'Title',
-              value: photo.title!,
+            const SizedBox(height: 12),
+          ],
+
+          // Mark as clue button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onToggleClue,
+              icon: Icon(
+                isClue ? Icons.bookmark_remove : Icons.bookmark_add,
+                size: 18,
+              ),
+              label: Text(
+                isClue ? 'Remove from Clues' : 'Mark Photo as Clue',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: isClue ? AppColors.danger : AppColors.clue,
+                side: BorderSide(
+                  color: isClue
+                      ? AppColors.danger.withValues(alpha: 0.5)
+                      : AppColors.clue.withValues(alpha: 0.5),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
-          if (photo.description != null)
-            _MetadataRow(
-              icon: Icons.notes,
-              label: 'Description',
-              value: photo.description!,
-            ),
-          if (photo.hotspots.isNotEmpty)
-            _MetadataRow(
-              icon: Icons.search,
-              label: 'Discoverable',
-              value:
-                  '${photo.hotspots.length} area${photo.hotspots.length > 1 ? 's' : ''} to inspect',
-            ),
+          ),
         ],
       ),
     );
   }
-}
 
-class _MetadataRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
+  IconData _getPhotoIcon() {
+    final t = (photo.title ?? '').toLowerCase();
+    if (t.contains('screenshot')) return Icons.screenshot;
+    if (t.contains('selfie')) return Icons.face;
+    if (t.contains('map') || t.contains('location')) return Icons.map;
+    if (t.contains('receipt') || t.contains('booking')) return Icons.receipt_long;
+    if (t.contains('document') || t.contains('contract')) return Icons.description;
+    return Icons.photo_camera;
+  }
 
-  const _MetadataRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.textSecondary, size: 16),
-          const SizedBox(width: 12),
-          Text(
-            '$label: ',
-            style: GoogleFonts.roboto(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.roboto(color: Colors.white, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
+  Color _getAccentColor() {
+    final t = (photo.title ?? '').toLowerCase();
+    if (t.contains('screenshot') || t.contains('booking')) return const Color(0xFF42A5F5);
+    if (t.contains('selfie')) return const Color(0xFFAB47BC);
+    return const Color(0xFF5C6BC0);
   }
 }

@@ -8,6 +8,7 @@ import '../models/message.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
+import '../widgets/investigation_nav_bar.dart';
 
 class MessagesAppScreen extends StatelessWidget {
   const MessagesAppScreen({super.key});
@@ -19,6 +20,7 @@ class MessagesAppScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: const InvestigationNavBar(),
       appBar: AppBar(
         backgroundColor: AppColors.background,
         leading: IconButton(

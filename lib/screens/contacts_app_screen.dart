@@ -8,6 +8,7 @@ import '../widgets/contact_card.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
+import '../widgets/investigation_nav_bar.dart';
 
 class ContactsAppScreen extends StatefulWidget {
   const ContactsAppScreen({super.key});
@@ -52,6 +53,7 @@ class _ContactsAppScreenState extends State<ContactsAppScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: const InvestigationNavBar(),
       appBar: AppBar(
         backgroundColor: AppColors.background,
         leading: IconButton(

@@ -171,9 +171,8 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                             _showNoCasesDialog();
                             return;
                           }
-                          // Start with first available case
-                          gameState.startCase(gameState.cases.first.caseNumber);
-                          Navigator.pushNamed(context, AppRoutes.caseIntro);
+                          // Go to case select so user picks their case
+                          Navigator.pushNamed(context, AppRoutes.caseSelect);
                         },
                         width: buttonWidth,
                       ),
@@ -240,10 +239,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                                 label: 'Settings',
                                 onPressed: () {
                                   HapticService.lightTap();
-                                  Navigator.pushNamed(
-                                    context,
-                                    AppRoutes.settings,
-                                  );
+                                  _showGameSettings(context, gameState);
                                 },
                               ),
                               _buildMenuButton(
@@ -301,6 +297,139 @@ class _MainMenuScreenState extends State<MainMenuScreen>
         style: GoogleFonts.roboto(color: AppColors.textSecondary, fontSize: 14),
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
+      ),
+    );
+  }
+
+  void _showGameSettings(BuildContext context, GameStateProvider gameState) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.backgroundSecondary,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          16,
+          24,
+          MediaQuery.of(ctx).padding.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Settings',
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Data source: ${gameState.isRemote ? "🟢 Live database" : "🟡 Offline (local)"}',
+              style: GoogleFonts.roboto(
+                fontSize: 12,
+                color: AppColors.textTertiary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            if (gameState.hasSaveData) ...[
+              _SettingsRow(
+                icon: Icons.refresh,
+                iconColor: AppColors.warning,
+                title: 'Reset Current Case',
+                subtitle: 'Clear clues and suspects for the active case',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmReset(context, gameState, false);
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+            _SettingsRow(
+              icon: Icons.delete_forever,
+              iconColor: AppColors.danger,
+              title: 'Reset All Progress',
+              subtitle: 'Erase all save data and start fresh',
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmReset(context, gameState, true);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmReset(
+    BuildContext context,
+    GameStateProvider gameState,
+    bool resetAll,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.backgroundSecondary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          resetAll ? 'Reset All Progress?' : 'Reset Current Case?',
+          style: GoogleFonts.poppins(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          resetAll
+              ? 'This will erase ALL save data including solved cases and clues. This cannot be undone.'
+              : 'This will clear all clues and suspects for the active case.',
+          style: GoogleFonts.roboto(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.roboto(color: AppColors.primary),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              HapticService.heavyTap();
+              if (resetAll) {
+                gameState.resetAllProgress();
+                Navigator.pop(ctx);
+              } else {
+                gameState.resetCurrentCase();
+                Navigator.pop(ctx);
+              }
+            },
+            child: Text(
+              'Reset',
+              style: GoogleFonts.roboto(color: AppColors.danger),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -396,6 +525,78 @@ class _MainMenuScreenState extends State<MainMenuScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SettingsRow extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _SettingsRow({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: iconColor, size: 18),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.roboto(
+                      fontSize: 12,
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: AppColors.textTertiary,
+              size: 18,
+            ),
+          ],
+        ),
       ),
     );
   }

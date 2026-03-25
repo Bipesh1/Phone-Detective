@@ -9,6 +9,7 @@ import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../widgets/clue_hint_banner.dart';
+import '../widgets/investigation_nav_bar.dart';
 
 class NotesAppScreen extends StatelessWidget {
   const NotesAppScreen({super.key});
@@ -20,6 +21,7 @@ class NotesAppScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: const InvestigationNavBar(),
       appBar: AppBar(
         backgroundColor: AppColors.background,
         leading: IconButton(
@@ -53,7 +55,7 @@ class NotesAppScreen extends StatelessWidget {
           ? _EmptyState()
           : Column(
               children: [
-                ClueHintBanner(clueCount: gameState.currentClues.length),
+                ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.notes),
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 12),

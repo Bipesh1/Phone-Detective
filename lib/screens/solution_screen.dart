@@ -395,27 +395,15 @@ class _SolutionScreenState extends State<SolutionScreen>
         );
       }
     } else {
-      setState(() => _isSubmitting = false);
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: AppColors.backgroundSecondary,
-            title: Text(
-              'Not Quite...',
-              style: GoogleFonts.poppins(color: AppColors.textPrimary),
-            ),
-            content: Text(
-              selectedOption.feedback,
-              style: GoogleFonts.roboto(color: AppColors.textSecondary),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Try Again'),
-              ),
-            ],
-          ),
+        // Navigate to case complete with isCorrect: false to show the real culprit
+        Navigator.pushReplacementNamed(
+          context,
+          AppRoutes.caseComplete,
+          arguments: {
+            'isCorrect': false,
+            'timeTaken': gameState.timePlayed,
+          },
         );
       }
     }

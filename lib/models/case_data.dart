@@ -35,6 +35,7 @@ class CaseData {
   final List<SuspenseEvent> suspenseEvents;
   final List<TimelineEvent> evidenceTimeline;
   final List<InterrogationQuestion> interrogationQuestions;
+  final List<int> unlockRequires; // Case numbers that must be solved first
 
   const CaseData({
     required this.caseNumber,
@@ -59,6 +60,7 @@ class CaseData {
     this.suspenseEvents = const [],
     this.evidenceTimeline = const [],
     this.interrogationQuestions = const [],
+    this.unlockRequires = const [],
   });
 
   Contact? getContact(String id) {
@@ -113,8 +115,7 @@ class CaseData {
       scenario: (json['scenario'] as String?) ?? '',
       objective: (json['objective'] as String?) ?? 'Solve the mystery.',
 
-      // DB has difficulty as integer
-      difficulty: _difficultyFromInt((json['difficulty'] as int?) ?? 1),
+      difficulty: _parseDifficulty(json['difficulty']),
 
       contacts: (json['contacts'] as List<dynamic>? ?? [])
           .map((e) => Contact.fromJson(e as Map<String, dynamic>))
@@ -142,8 +143,12 @@ class CaseData {
 
       solution: CaseSolution.fromJson(json['solution'] as Map<String, dynamic>),
 
-      // Column doesn't exist in your table; keep default for now
-      totalClues: 0,
+      // Use DB value if > 0, otherwise auto-compute from key clue IDs
+      totalClues: ((json['total_clues'] as int?) ?? 0) > 0
+          ? (json['total_clues'] as int)
+          : (json['solution'] is Map
+              ? ((json['solution'] as Map)['key_clue_ids'] as List?)?.length ?? 0
+              : 0),
 
       // DB has theme_color_hex text
       themeColor: _colorFromHex(json['theme_color_hex'] as String?),
@@ -170,20 +175,46 @@ class CaseData {
               [])
           .map((e) => InterrogationQuestion.fromJson(e as Map<String, dynamic>))
           .toList(),
+
+      unlockRequires: (json['unlock_requires'] as List<dynamic>? ?? [])
+          .map((e) => (e is int) ? e : int.tryParse(e.toString()) ?? 0)
+          .toList(),
     );
   }
 
-  static CaseDifficulty _difficultyFromInt(int v) {
-    switch (v) {
-      case 0:
+  static CaseDifficulty _parseDifficulty(dynamic value) {
+    if (value == null) return CaseDifficulty.easy;
+
+    // Handle integer values
+    if (value is int) {
+      switch (value) {
+        case 0:
+          return CaseDifficulty.tutorial;
+        case 1:
+          return CaseDifficulty.easy;
+        case 2:
+          return CaseDifficulty.medium;
+        case 3:
+          return CaseDifficulty.hard;
+        case 4:
+          return CaseDifficulty.veryHard;
+        default:
+          return CaseDifficulty.easy;
+      }
+    }
+
+    // Handle string values from DB
+    final str = value.toString().toLowerCase().trim();
+    switch (str) {
+      case 'tutorial':
         return CaseDifficulty.tutorial;
-      case 1:
+      case 'easy':
         return CaseDifficulty.easy;
-      case 2:
+      case 'medium':
         return CaseDifficulty.medium;
-      case 3:
+      case 'hard':
         return CaseDifficulty.hard;
-      case 4:
+      case 'very_hard' || 'veryhard' || 'veryHard':
         return CaseDifficulty.veryHard;
       default:
         return CaseDifficulty.easy;
