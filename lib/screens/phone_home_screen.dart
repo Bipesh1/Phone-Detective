@@ -73,53 +73,83 @@ class _PhoneHomeScreenState extends State<PhoneHomeScreen> {
       builder: (context, gameState, child) {
         if (!gameState.isTutorialActive) return const SizedBox.shrink();
 
+        // Only show home overlay for steps that belong to the home screen.
+        // Steps 3-5, 7-10, 12, 14 are handled inside sub-screens via TutorialBanner.
+        const homeSteps = {1, 2, 6, 11, 13, 15};
+        if (!homeSteps.contains(gameState.tutorialStep)) {
+          return const SizedBox.shrink();
+        }
+
         String message = '';
         GlobalKey? target;
         VoidCallback onContinue = gameState.nextTutorialStep;
         bool isLast = false;
+        bool requireAction = false;
 
         switch (gameState.tutorialStep) {
+          // ── Step 1: Scene-setter ─────────────────────────────────────────
           case 1:
             message =
-                "Welcome, Detective! You now have access to the victim's phone. Your job: explore every app and find evidence.";
+                'CASE 01 — "The Runaway Influencer"\n\n'
+                'Lifestyle influencer Lena Voss vanished the night before a major brand dinner. '
+                'Her phone was found in a Lyft.\n\n'
+                'You have full access. Start by reading her Messages.';
             target = null;
             break;
+
+          // ── Step 2: Open Messages (action-gated) ────────────────────────
           case 2:
             message =
-                "Start with Messages. Read conversations carefully. Long-press any suspicious message to mark it as evidence.";
+                'Open Messages ↑\n\n'
+                'Read through every conversation carefully. '
+                'Lena\'s messages will tell you who knew what — and who she trusted.';
             target = _messagesKey;
+            requireAction = true;
             break;
-          case 3:
-            message =
-                "Check Emails for contracts, confirmations, or secrets. Long-press to mark as evidence.";
-            target = _emailKey;
-            break;
-          case 4:
-            message =
-                "Notes may contain diaries, passwords, or private thoughts. Tap to read, long-press to save as evidence.";
-            target = _notesKey;
-            break;
-          case 5:
-            message =
-                "The Call Log shows who the victim called and when. Missed calls and short calls can be suspicious.";
-            target = _callLogKey;
-            break;
+
+          // ── Step 6: Open Notes (action-gated) ───────────────────────────
           case 6:
             message =
-                "In Contacts, tap a person to view details. Long-press to mark them as a suspect.";
-            target = _contactsKey;
+                '2 clues found — good work.\n\n'
+                'Now open Notes ↑\n\n'
+                'Lena wrote private thoughts in her notes. '
+                'There may be passwords, plans, or confessions in there.';
+            target = _notesKey;
+            requireAction = true;
             break;
-          case 7:
+
+          // ── Step 11: Open Emails (action-gated) ─────────────────────────
+          case 11:
             message =
-                "Stuck? Tap Hints for guidance. Hints are revealed one at a time so nothing is spoiled.";
-            target = _hintsKey;
+                '4 clues found.\n\n'
+                'Now open Emails ↑\n\n'
+                'Check every email — especially anything from business contacts. '
+                'Something was forwarded by accident.';
+            target = _emailKey;
+            requireAction = true;
             break;
-          case 8:
+
+          // ── Step 13: Open Gallery (action-gated) ────────────────────────
+          case 13:
             message =
-                "Open the Journal to review all your clues and suspects. When ready, tap Solve to make your accusation!";
+                '5 clues found.\n\n'
+                'Open Gallery ↑\n\n'
+                'Lena took photos in the hours before she disappeared. '
+                'One screenshot connects everything.';
+            target = _galleryKey;
+            requireAction = true;
+            break;
+
+          // ── Step 15: Final — Open Journal ───────────────────────────────
+          case 15:
+            message =
+                'All 6 clues found.\n\n'
+                'Open your Detective Journal ↑\n\n'
+                'Review your evidence and tap SOLVE CASE '
+                'when you know what really happened to Lena Voss.';
             target = _journalKey;
+            requireAction = true;
             isLast = true;
-            onContinue = gameState.endTutorial;
             break;
         }
 
@@ -129,6 +159,7 @@ class _PhoneHomeScreenState extends State<PhoneHomeScreen> {
           onContinue: onContinue,
           targetKey: target,
           isLastStep: isLast,
+          requireAction: requireAction,
         );
       },
     );
@@ -644,6 +675,17 @@ class _AppGrid extends StatelessWidget {
 
   void _nav(BuildContext context, String route) {
     HapticService.lightTap();
+    final gs = Provider.of<GameStateProvider>(context, listen: false);
+
+    // Tutorial: auto-advance when the correct highlighted app is opened
+    if (route == AppRoutes.messages) gs.advanceTutorialIfOnStep(2);
+    if (route == AppRoutes.notes) gs.advanceTutorialIfOnStep(6);
+    if (route == AppRoutes.email) gs.advanceTutorialIfOnStep(11);
+    if (route == AppRoutes.gallery) gs.advanceTutorialIfOnStep(13);
+    if (route == AppRoutes.detectiveJournal) {
+      if (gs.isTutorialActive && gs.tutorialStep == 15) gs.endTutorial();
+    }
+
     Navigator.pushNamed(context, route);
   }
 
@@ -722,6 +764,8 @@ class _ActionDock extends StatelessWidget {
             badge: clueCount > 0 ? clueCount : null,
             onTap: () {
               HapticService.lightTap();
+              final gs = Provider.of<GameStateProvider>(context, listen: false);
+              if (gs.isTutorialActive && gs.tutorialStep == 15) gs.endTutorial();
               Navigator.pushNamed(context, AppRoutes.detectiveJournal);
             },
           ),

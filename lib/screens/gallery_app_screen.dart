@@ -9,6 +9,7 @@ import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../widgets/investigation_nav_bar.dart';
+import '../widgets/tutorial_banner.dart';
 
 class GalleryAppScreen extends StatefulWidget {
   const GalleryAppScreen({super.key});
@@ -69,9 +70,15 @@ class _GalleryAppScreenState extends State<GalleryAppScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
+          TutorialBanner(stepMessages: {
+            14: 'Tap the flight booking screenshot.\nThis was taken by Lena hours before her phone was found.',
+          }),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
           // All Photos
           _PhotoGrid(photos: visiblePhotos, gameState: gameState),
           // Screenshots
@@ -86,6 +93,9 @@ class _GalleryAppScreenState extends State<GalleryAppScreen>
           ),
           // Hidden
           _HiddenPhotosSection(photos: hiddenPhotos, gameState: gameState),
+        ],
+            ),
+          ),
         ],
       ),
     );
@@ -152,6 +162,7 @@ class _PhotoGrid extends StatelessWidget {
           hasHotspots: photo.hotspots.isNotEmpty,
           onTap: () {
             HapticService.lightTap();
+            if (photo.id == 'p1') gameState.advanceTutorialIfOnStep(14);
             Navigator.pushNamed(
               context,
               AppRoutes.photoViewer,

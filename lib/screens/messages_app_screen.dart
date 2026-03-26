@@ -9,6 +9,7 @@ import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../widgets/investigation_nav_bar.dart';
+import '../widgets/tutorial_banner.dart';
 
 class MessagesAppScreen extends StatelessWidget {
   const MessagesAppScreen({super.key});
@@ -44,7 +45,11 @@ class MessagesAppScreen extends StatelessWidget {
       ),
       body: conversations.isEmpty
           ? _EmptyState()
-          : ListView.separated(
+          : Column(
+              children: [
+                TutorialBanner(stepMessages: {3: 'Open the conversation with MAYA CHEN — she was Lena\'s closest friend and the last person Lena spoke to before disappearing.'}),
+                Expanded(
+                  child: ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: conversations.length,
               separatorBuilder: (context, index) =>
@@ -64,6 +69,10 @@ class MessagesAppScreen extends StatelessWidget {
                   messageCount: conv.messages.length,
                   onTap: () {
                     HapticService.lightTap();
+                    if (conv.contactId == 'maya') {
+                      Provider.of<GameStateProvider>(context, listen: false)
+                          .advanceTutorialIfOnStep(3);
+                    }
                     Navigator.pushNamed(
                       context,
                       AppRoutes.conversation,
@@ -72,6 +81,9 @@ class MessagesAppScreen extends StatelessWidget {
                   },
                 );
               },
+                  ),
+                ),
+              ],
             ),
     );
   }

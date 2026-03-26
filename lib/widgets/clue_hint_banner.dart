@@ -111,21 +111,21 @@ class _ClueHintBannerState extends State<ClueHintBanner>
   (IconData, String) _getContextualHint() {
     switch (widget.context) {
       case InvestigationContext.messages:
-        return (Icons.chat_bubble_outline, 'Tap a conversation to read messages. Look for suspicious details.');
+        return (Icons.chat_bubble_outline, 'Tap a conversation to read. Look for unusual tone, timing, or travel details.');
       case InvestigationContext.conversation:
-        return (Icons.touch_app, 'Long-press any message to mark it as evidence.');
+        return (Icons.touch_app, 'Hold a suspicious message to investigate it. Your instincts will tell you if it matters.');
       case InvestigationContext.email:
-        return (Icons.touch_app, 'Tap an email to read it. Long-press to mark as evidence.');
+        return (Icons.touch_app, 'Tap an email to read it. Hold a suspicious one to investigate — passwords may unlock locked emails.');
       case InvestigationContext.notes:
-        return (Icons.sticky_note_2, 'Tap a note to read. Long-press to mark as evidence.');
+        return (Icons.sticky_note_2, 'Tap a note to read. Hold it to investigate. People write passwords and plans in notes.');
       case InvestigationContext.callLog:
-        return (Icons.touch_app, 'Long-press a call to mark as evidence. Check voicemails too.');
+        return (Icons.touch_app, 'Tap a call to see details. Hold a suspicious one to investigate. Check voicemails carefully.');
       case InvestigationContext.gallery:
-        return (Icons.photo_camera, 'Tap a photo to view details. Look for anything suspicious.');
+        return (Icons.photo_camera, 'Tap a photo to examine it closely. Look for location details, people, or text in images.');
       case InvestigationContext.contacts:
-        return (Icons.person_search, 'Tap a contact for details. Long-press to mark as suspect.');
+        return (Icons.person_search, 'Tap a contact for their profile. Hold their name to mark them as a suspect.');
       case InvestigationContext.general:
-        return (Icons.touch_app, 'Long-press any item to mark as evidence.');
+        return (Icons.touch_app, 'Hold any suspicious item to investigate it. Not everything is evidence — think critically.');
     }
   }
 }

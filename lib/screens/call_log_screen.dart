@@ -9,6 +9,7 @@ import '../models/clue.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
+import '../widgets/clue_deduction_sheet.dart';
 import '../widgets/clue_hint_banner.dart';
 import '../widgets/voicemail_player.dart';
 import '../widgets/investigation_nav_bar.dart';
@@ -259,15 +260,103 @@ class _CallTile extends StatelessWidget {
     final contact = gameState.currentCase.getContact(call.contactId);
     HapticService.mediumTap();
 
+    // If already marked — show voicemail/details + removal option
+    if (isClue) {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: AppColors.backgroundSecondary,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) => SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  '${call.type.name.toUpperCase()} call ${call.type == CallType.outgoing ? 'to' : 'from'}',
+                  style: GoogleFonts.roboto(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  contact?.fullName ?? call.phoneNumber,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  '${call.displayTime} • ${call.displayDuration.isNotEmpty ? call.displayDuration : 'No answer'}',
+                  style: GoogleFonts.roboto(color: AppColors.textTertiary),
+                ),
+                if (call.transcription != null) ...[
+                  const SizedBox(height: 24),
+                  VoicemailPlayer(
+                    transcription: call.transcription!,
+                    duration: call.duration,
+                  ),
+                ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      gameState.removeClue(call.id);
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Removed from evidence'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.bookmark_remove, color: Colors.white),
+                    label: Text(
+                      'Remove from Evidence',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.danger,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Show call details + voicemail for any call (for reading/listening)
+    // Deduction check happens when tapping "Investigate"
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.backgroundSecondary,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => SingleChildScrollView(
+      builder: (ctx) => SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -309,45 +398,51 @@ class _CallTile extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    if (isClue) {
-                      gameState.removeClue(call.id);
+                    Navigator.pop(ctx);
+                    if (!gameState.isKeyClue(call.id)) {
+                      ClueDeductionSheet.showNothing(context);
                     } else {
-                      final clue = Clue(
-                        id: call.id,
-                        type: ClueType.call,
-                        sourceId: call.id,
-                        preview:
-                            '${call.type.name} call - ${contact?.fullName ?? call.phoneNumber}${call.transcription != null ? ' (Voicemail)' : ''}',
-                        foundAt: DateTime.now(),
+                      final callDesc =
+                          '${call.type.name} call — ${contact?.fullName ?? call.phoneNumber}'
+                          '${call.transcription != null ? ' (Voicemail)' : ''}';
+                      ClueDeductionSheet.show(
+                        context: context,
+                        preview: callDesc,
+                        onConfirm: () {
+                          gameState.addClue(Clue(
+                            id: call.id,
+                            type: ClueType.call,
+                            sourceId: call.id,
+                            preview: callDesc,
+                            foundAt: DateTime.now(),
+                          ));
+                          HapticService.heavyTap();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  Icon(Icons.bookmark, color: AppColors.clue),
+                                  const SizedBox(width: 8),
+                                  const Text('Added to Evidence Board'),
+                                ],
+                              ),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
                       );
-                      gameState.addClue(clue);
-                      HapticService.heavyTap();
                     }
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          isClue
-                              ? 'Removed from clues'
-                              : 'Added to Detective Journal',
-                        ),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
                   },
-                  icon: Icon(
-                    isClue ? Icons.bookmark_remove : Icons.bookmark_add,
-                    color: isClue ? Colors.white : Colors.black87,
-                  ),
+                  icon: const Icon(Icons.search, color: Colors.black87),
                   label: Text(
-                    isClue ? 'Remove from Clues' : 'Mark as Clue',
+                    'Investigate',
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w600,
-                      color: isClue ? Colors.white : Colors.black87,
+                      color: Colors.black87,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isClue ? AppColors.danger : AppColors.clue,
+                    backgroundColor: AppColors.clue,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -355,7 +450,6 @@ class _CallTile extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
             ],
           ),
         ),

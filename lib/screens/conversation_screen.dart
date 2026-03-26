@@ -10,9 +10,11 @@ import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../widgets/clue_hint_banner.dart';
+import '../widgets/clue_deduction_sheet.dart';
 import '../widgets/password_unlock_widget.dart';
 import '../widgets/data_restore_widget.dart';
 import '../widgets/investigation_nav_bar.dart';
+import '../widgets/tutorial_banner.dart';
 
 class ConversationScreen extends StatefulWidget {
   final String contactId;
@@ -92,6 +94,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
       bottomNavigationBar: const InvestigationNavBar(),
       body: Column(
         children: [
+          if (widget.contactId == 'maya')
+            TutorialBanner(stepMessages: {
+              4: 'Scroll to the bottom of this conversation.\nHold the message: "I booked a one-way flight. Bali." to investigate it.',
+              5: 'Good catch! Now hold the message:\n"By the time anyone reads it, I\'ll be in the air."\nInvestigate it the same way.',
+            }),
           ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.conversation),
           // Messages
           Expanded(
@@ -142,17 +149,27 @@ class _ConversationScreenState extends State<ConversationScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: PasswordUnlockWidget(
-                                  correctPassword: message.password ?? '',
-                                  hint: message.passwordHint,
-                                  stepHint: gameState.currentCase
-                                      .getStepHintForNode(message.id),
-                                  onUnlock: () {
-                                    gameState.unlockItem(message.id);
-                                    Navigator.pop(ctx);
-                                  },
+                              insetPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 24,
+                              ),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxHeight:
+                                      MediaQuery.of(context).size.height * 0.85,
+                                ),
+                                child: SingleChildScrollView(
+                                  padding: const EdgeInsets.all(8),
+                                  child: PasswordUnlockWidget(
+                                    correctPassword: message.password ?? '',
+                                    hint: message.passwordHint,
+                                    stepHint: gameState.currentCase
+                                        .getStepHintForNode(message.id),
+                                    onUnlock: () {
+                                      gameState.unlockItem(message.id);
+                                      Navigator.pop(ctx);
+                                    },
+                                  ),
                                 ),
                               ),
                             ),
@@ -220,96 +237,105 @@ class _ConversationScreenState extends State<ConversationScreen> {
   ) {
     HapticService.mediumTap();
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.backgroundSecondary,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Message preview
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                message.content.length > 100
-                    ? '${message.content.substring(0, 100)}...'
-                    : message.content,
-                style: GoogleFonts.roboto(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
+    // Already marked — offer removal
+    if (isClue) {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: AppColors.backgroundSecondary,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) => Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            // Actions
-            if (isClue)
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDark,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  message.content.length > 100
+                      ? '${message.content.substring(0, 100)}...'
+                      : message.content,
+                  style: GoogleFonts.roboto(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               _ActionButton(
                 icon: Icons.bookmark_remove,
-                label: 'Remove from Clues',
+                label: 'Remove from Evidence',
                 color: AppColors.danger,
                 onTap: () {
                   gameState.removeClue(message.id);
-                  Navigator.pop(context);
+                  Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Removed from clues'),
+                      content: Text('Removed from evidence'),
                       duration: Duration(seconds: 1),
                     ),
                   );
                 },
-              )
-            else
-              _ActionButton(
-                icon: Icons.bookmark_add,
-                label: 'Mark as Clue',
-                color: AppColors.clue,
-                onTap: () {
-                  final clue = Clue(
-                    id: message.id,
-                    type: ClueType.message,
-                    sourceId: message.id,
-                    preview:
-                        '$senderName: ${message.content.length > 80 ? '${message.content.substring(0, 80)}...' : message.content}',
-                    foundAt: DateTime.now(),
-                  );
-                  gameState.addClue(clue);
-                  HapticService.heavyTap();
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          Icon(Icons.bookmark, color: AppColors.clue),
-                          const SizedBox(width: 8),
-                          const Text('Added to Detective Journal'),
-                        ],
-                      ),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
               ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
-      ),
+      );
+      return;
+    }
+
+    // Not yet marked — check if this is actually a key clue
+    if (!gameState.isKeyClue(message.id)) {
+      ClueDeductionSheet.showNothing(context);
+      return;
+    }
+
+    // Key clue found — show deduction confirmation
+    final preview =
+        '$senderName: ${message.content.length > 80 ? '${message.content.substring(0, 80)}...' : message.content}';
+    ClueDeductionSheet.show(
+      context: context,
+      preview: preview,
+      onConfirm: () {
+        gameState.addClue(Clue(
+          id: message.id,
+          type: ClueType.message,
+          sourceId: message.id,
+          preview: preview,
+          foundAt: DateTime.now(),
+        ));
+        if (message.id == 'm9') gameState.advanceTutorialIfOnStep(4);
+        if (message.id == 'm11') gameState.advanceTutorialIfOnStep(5);
+        HapticService.heavyTap();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.bookmark, color: AppColors.clue),
+                const SizedBox(width: 8),
+                const Text('Added to Evidence Board'),
+              ],
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
     );
   }
 

@@ -460,27 +460,36 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
                             const SizedBox(height: 16),
                             _buildStepGuide(
                               '2',
-                              'COLLECT EVIDENCE',
-                              'When you find something suspicious, long-press it to mark as a clue. Clues are saved to your Detective Journal.',
-                              Icons.bookmark_add,
+                              'INVESTIGATE SUSPICIOUS ITEMS',
+                              'When something catches your eye, hold it to investigate. Your detective instincts will confirm if it\'s truly significant. Not everything is a clue — only real evidence will stick.',
+                              Icons.search,
                               AppColors.clue,
                             ),
 
                             const SizedBox(height: 16),
                             _buildStepGuide(
                               '3',
+                              'FOLLOW THE CROSS-APP TRAIL',
+                              'Clues connect across apps. A password in Notes unlocks an Email. A name in Messages leads to a Contacts profile. Explore everything — the case unfolds piece by piece.',
+                              Icons.account_tree,
+                              AppColors.primary,
+                            ),
+
+                            const SizedBox(height: 16),
+                            _buildStepGuide(
+                              '4',
                               'MARK SUSPECTS',
-                              'In Contacts, long-press any person you think is involved to mark them as a suspect.',
+                              'In Contacts, hold any person you believe is involved to mark them as a suspect. Build your case before making an accusation.',
                               Icons.person_search,
                               AppColors.danger,
                             ),
 
                             const SizedBox(height: 16),
                             _buildStepGuide(
-                              '4',
+                              '5',
                               'USE THE DETECTIVE JOURNAL',
                               'The Journal has 4 tabs:\n'
-                              '  Clues — all evidence you collected\n'
+                              '  Clues — all evidence you confirmed\n'
                               '  Suspects — people you marked\n'
                               '  Timeline — reconstruct the order of events\n'
                               '  Notes — write your own theories',
@@ -490,18 +499,18 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
 
                             const SizedBox(height: 16),
                             _buildStepGuide(
-                              '5',
+                              '6',
                               'RECONSTRUCT THE TIMELINE',
-                              'In the Journal Timeline tab, arrange events in the correct chronological order. This helps you understand what really happened.',
+                              'In the Journal Timeline tab, arrange events in the correct chronological order. Understanding the sequence often reveals the truth.',
                               Icons.timeline,
                               const Color(0xFFE91E63),
                             ),
 
                             const SizedBox(height: 16),
                             _buildStepGuide(
-                              '6',
+                              '7',
                               'SOLVE THE CASE',
-                              'When you have enough evidence, tap "Solve" to make your accusation. Choose who is responsible, verify your deductions, and submit. Get it right to close the case!',
+                              'When you have enough evidence and a strong suspect, tap "Solve". Choose who is responsible, verify your deductions, and submit your accusation.',
                               Icons.gavel,
                               AppColors.success,
                             ),

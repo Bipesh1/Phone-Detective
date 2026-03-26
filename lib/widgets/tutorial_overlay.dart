@@ -6,6 +6,10 @@ class TutorialOverlay extends StatefulWidget {
   final VoidCallback onContinue;
   final GlobalKey? targetKey;
   final bool isLastStep;
+  /// When true the NEXT button is replaced with an arrow prompt, nudging
+  /// the player to tap the highlighted app. A smaller "Skip" link still
+  /// lets impatient players bypass the step.
+  final bool requireAction;
 
   const TutorialOverlay({
     super.key,
@@ -13,6 +17,7 @@ class TutorialOverlay extends StatefulWidget {
     required this.onContinue,
     this.targetKey,
     this.isLastStep = false,
+    this.requireAction = false,
   });
 
   @override
@@ -102,32 +107,34 @@ class _TutorialOverlayState extends State<TutorialOverlay> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Dim background + "hole"
-        ColorFiltered(
-          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcOut),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Container(
-                decoration: const BoxDecoration(
-                  color: Colors.transparent,
-                  backgroundBlendMode: BlendMode.dstOut,
-                ),
-              ),
-              if (hasTarget)
-                Positioned(
-                  left: _targetPosition!.dx - 8,
-                  top: _targetPosition!.dy - 8,
-                  child: Container(
-                    width: _targetSize!.width + 16,
-                    height: _targetSize!.height + 16,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+        // Dim background + "hole" — IgnorePointer lets taps reach app icons
+        IgnorePointer(
+          child: ColorFiltered(
+            colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcOut),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
+                    backgroundBlendMode: BlendMode.dstOut,
                   ),
                 ),
-            ],
+                if (hasTarget)
+                  Positioned(
+                    left: _targetPosition!.dx - 8,
+                    top: _targetPosition!.dy - 8,
+                    child: Container(
+                      width: _targetSize!.width + 16,
+                      height: _targetSize!.height + 16,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
 
@@ -184,24 +191,62 @@ class _TutorialOverlayState extends State<TutorialOverlay> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: widget.onContinue,
-                      style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFF007AFF),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
+                  if (widget.requireAction) ...[
+                    // Action-gated: prompt the player to tap the highlighted app
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.arrow_upward,
+                                color: Colors.amber, size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Tap the highlighted app',
+                              style: GoogleFonts.oswald(
+                                color: Colors.amber,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: widget.onContinue,
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'Skip',
+                            style: GoogleFonts.roboto(
+                              color: Colors.white38,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: widget.onContinue,
+                        style: TextButton.styleFrom(
+                          backgroundColor: const Color(0xFF007AFF),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                        ),
+                        child: Text(
+                          widget.isLastStep ? 'GOT IT' : 'NEXT',
+                          style: GoogleFonts.oswald(),
                         ),
                       ),
-                      child: Text(
-                        widget.isLastStep ? 'FINISH' : 'NEXT',
-                        style: GoogleFonts.oswald(),
-                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

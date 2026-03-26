@@ -8,10 +8,12 @@ import '../models/email.dart';
 import '../models/clue.dart';
 import '../utils/constants.dart';
 import '../services/haptic_service.dart';
+import '../widgets/clue_deduction_sheet.dart';
 import '../widgets/clue_hint_banner.dart';
 import '../widgets/password_unlock_widget.dart';
 import '../widgets/data_restore_widget.dart';
 import '../widgets/investigation_nav_bar.dart';
+import '../widgets/tutorial_banner.dart';
 
 class EmailAppScreen extends StatefulWidget {
   const EmailAppScreen({super.key});
@@ -74,6 +76,9 @@ class _EmailAppScreenState extends State<EmailAppScreen> {
             )
           : Column(
               children: [
+                TutorialBanner(stepMessages: {
+                  12: 'Open the SkyBridge Airlines email:\n"Flight Confirmation - DPS-7742"\nThis is the receipt for something Lena did the night before she disappeared.',
+                }),
                 ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.email),
                 Expanded(
                   child: ListView.builder(
@@ -243,36 +248,55 @@ class _EmailTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Clue button
+                // Evidence button — deduction-gated marking
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () {
                       if (currentlyClue) {
+                        // Allow removal freely
                         gameState.removeClue(email.id);
-                      } else {
-                        gameState.addClue(
-                          Clue(
-                            id: email.id,
-                            type: ClueType.email,
-                            sourceId: email.id,
-                            preview: '${email.senderName}: ${email.subject}',
-                            foundAt: DateTime.now(),
+                        setSheetState(() {});
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Removed from evidence'),
+                            duration: Duration(seconds: 1),
                           ),
                         );
-                        HapticService.heavyTap();
+                      } else if (!gameState.isKeyClue(email.id)) {
+                        ClueDeductionSheet.showNothing(context);
+                      } else {
+                        Navigator.pop(sheetContext); // close email sheet first
+                        ClueDeductionSheet.show(
+                          context: context,
+                          preview: '${email.senderName}: ${email.subject}',
+                          onConfirm: () {
+                            gameState.addClue(Clue(
+                              id: email.id,
+                              type: ClueType.email,
+                              sourceId: email.id,
+                              preview:
+                                  '${email.senderName}: ${email.subject}',
+                              foundAt: DateTime.now(),
+                            ));
+                            if (email.id == 'em4') gameState.advanceTutorialIfOnStep(12);
+                            HapticService.heavyTap();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    Icon(Icons.bookmark,
+                                        color: AppColors.clue),
+                                    const SizedBox(width: 8),
+                                    const Text('Added to Evidence Board'),
+                                  ],
+                                ),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                        );
                       }
-                      setSheetState(() {});
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            currentlyClue
-                                ? 'Removed from clues'
-                                : 'Added to Detective Journal',
-                          ),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
                     },
                     icon: Icon(
                       currentlyClue ? Icons.bookmark : Icons.bookmark_add,
@@ -282,7 +306,7 @@ class _EmailTile extends StatelessWidget {
                       size: 18,
                     ),
                     label: Text(
-                      currentlyClue ? 'Marked as Clue' : 'Mark as Clue',
+                      currentlyClue ? 'Marked as Evidence' : 'Investigate',
                       style: GoogleFonts.roboto(
                         color: currentlyClue
                             ? AppColors.clue
@@ -369,24 +393,41 @@ class _EmailTile extends StatelessWidget {
     HapticService.mediumTap();
     if (isClue) {
       gameState.removeClue(email.id);
-    } else {
-      gameState.addClue(
-        Clue(
-          id: email.id,
-          type: ClueType.email,
-          sourceId: email.id,
-          preview: email.subject,
-          foundAt: DateTime.now(),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Removed from evidence'),
+          duration: Duration(seconds: 1),
         ),
       );
-      HapticService.heavyTap();
+    } else if (!gameState.isKeyClue(email.id)) {
+      ClueDeductionSheet.showNothing(context);
+    } else {
+      ClueDeductionSheet.show(
+        context: context,
+        preview: '${email.senderName}: ${email.subject}',
+        onConfirm: () {
+          gameState.addClue(Clue(
+            id: email.id,
+            type: ClueType.email,
+            sourceId: email.id,
+            preview: '${email.senderName}: ${email.subject}',
+            foundAt: DateTime.now(),
+          ));
+          HapticService.heavyTap();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.bookmark, color: AppColors.clue),
+                  const SizedBox(width: 8),
+                  const Text('Added to Evidence Board'),
+                ],
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        },
+      );
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isClue ? 'Removed from clues' : 'Added to Detective Journal',
-        ),
-      ),
-    );
   }
 }

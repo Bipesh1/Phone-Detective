@@ -210,6 +210,14 @@ class GameStateProvider extends ChangeNotifier {
     return _currentClues.any((c) => c.sourceId == sourceId);
   }
 
+  /// Returns true if [itemId] is a key clue for the current case.
+  /// Falls back to true (allow any) when no key_clue_ids are defined.
+  bool isKeyClue(String itemId) {
+    final keyClueIds = currentCase.solution.keyClueIds;
+    if (keyClueIds.isEmpty) return true;
+    return keyClueIds.contains(itemId);
+  }
+
   Future<void> updateClueNote(String clueId, String note) async {
     final index = _currentClues.indexWhere((c) => c.id == clueId);
     if (index != -1) {
@@ -439,7 +447,7 @@ class GameStateProvider extends ChangeNotifier {
   }
 
   void nextTutorialStep() {
-    if (_tutorialStep < 8) {
+    if (_tutorialStep < 15) {
       _tutorialStep++;
 
       // Force a frame to complete before showing next step
@@ -449,6 +457,12 @@ class GameStateProvider extends ChangeNotifier {
     } else {
       endTutorial();
     }
+  }
+
+  /// Advance the tutorial only if currently on [step].
+  /// Called when the player opens an app during the tutorial.
+  void advanceTutorialIfOnStep(int step) {
+    if (_tutorialStep == step) nextTutorialStep();
   }
 
   Future<void> endTutorial() async {
