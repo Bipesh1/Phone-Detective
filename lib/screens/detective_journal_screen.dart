@@ -191,28 +191,39 @@ class _CluesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (gameState.currentClues.isEmpty) {
-      return _EmptyState(
-        icon: Icons.bookmark_border,
-        title: 'No evidence yet',
-        subtitle: 'Long-press messages, emails, notes, or calls to mark as clues.',
-        action: _EmptyAction(
-          label: 'Start Investigating',
-          icon: Icons.phone_android,
-          onTap: () => Navigator.pop(context),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _TabDescription(
+          'Everything you\'ve marked as evidence. Long-press any message, email, note, call, or photo to add it here.',
         ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: gameState.currentClues.length,
-      itemBuilder: (context, index) => ClueTag(
-        clue: gameState.currentClues[index],
-        showRemove: true,
-        onRemove: () =>
-            gameState.removeClue(gameState.currentClues[index].id),
-      ),
+        if (gameState.currentClues.isEmpty)
+          Expanded(
+            child: _EmptyState(
+              icon: Icons.bookmark_border,
+              title: 'No evidence yet',
+              subtitle: 'Long-press messages, emails, notes, or calls to mark as clues.',
+              action: _EmptyAction(
+                label: 'Start Investigating',
+                icon: Icons.phone_android,
+                onTap: () => Navigator.pop(context),
+              ),
+            ),
+          )
+        else
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: gameState.currentClues.length,
+              itemBuilder: (context, index) => ClueTag(
+                clue: gameState.currentClues[index],
+                showRemove: true,
+                onRemove: () =>
+                    gameState.removeClue(gameState.currentClues[index].id),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -230,24 +241,28 @@ class _SuspectsTab extends StatelessWidget {
         .where((c) => c != null)
         .toList();
 
-    if (suspects.isEmpty) {
-      return _EmptyState(
-        icon: Icons.person_search,
-        title: 'No suspects marked',
-        subtitle:
-            'Visit Contacts and long-press a contact to mark them as a suspect.',
-        action: _EmptyAction(
-          label: 'Open Contacts',
-          icon: Icons.contacts,
-          onTap: () => Navigator.pushNamed(context, AppRoutes.contacts),
-        ),
-      );
-    }
-
     return Column(
       children: [
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        _TabDescription(
+          'Contacts you\'ve flagged as suspects. Go to Contacts and long-press a name to add someone here.',
+        ),
+        if (suspects.isEmpty)
+          Expanded(
+            child: _EmptyState(
+              icon: Icons.person_search,
+              title: 'No suspects marked',
+              subtitle:
+                  'Visit Contacts and long-press a contact to mark them as a suspect.',
+              action: _EmptyAction(
+                label: 'Open Contacts',
+                icon: Icons.contacts,
+                onTap: () => Navigator.pushNamed(context, AppRoutes.contacts),
+              ),
+            ),
+          )
+        else ...[
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppColors.warning.withValues(alpha: 0.08),
@@ -288,6 +303,7 @@ class _SuspectsTab extends StatelessWidget {
             },
           ),
         ),
+        ],
       ],
     );
   }
@@ -306,6 +322,9 @@ class _TimelineTab extends StatelessWidget {
 
     return Column(
       children: [
+        _TabDescription(
+          'Clues in the order you discovered them. Use "Reconstruct the Timeline" to arrange events by when they happened in the case.',
+        ),
         // Timeline Builder mini-game button
         if (!gameState.timelineCompleted)
           Container(
@@ -440,16 +459,31 @@ class _ConnectionsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final keyIds = gameState.currentCase.solution.keyClueIds;
-    final collectedIds =
-        gameState.currentClues.map((c) => c.sourceId).toSet();
+    final clues = gameState.currentClues;
 
-    if (keyIds.isEmpty) {
-      return _EmptyState(
-        icon: Icons.share,
-        title: 'No connections mapped',
-        subtitle: 'Collect key evidence to see how clues link together.',
+    if (clues.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _TabDescription(
+            'All your evidence grouped by type — messages, emails, calls, notes, photos. Use this to spot patterns and build your case.',
+          ),
+          const Expanded(
+            child: _EmptyState(
+              icon: Icons.dashboard_customize_outlined,
+              title: 'Evidence board is empty',
+              subtitle:
+                  'Hold messages, emails, notes, calls, or photos to mark them as evidence. They\'ll appear here.',
+            ),
+          ),
+        ],
       );
+    }
+
+    // Group clues by type
+    final grouped = <ClueType, List<Clue>>{};
+    for (final clue in clues) {
+      grouped.putIfAbsent(clue.type, () => []).add(clue);
     }
 
     return SingleChildScrollView(
@@ -460,7 +494,8 @@ class _ConnectionsTab extends StatelessWidget {
           // Header
           Row(
             children: [
-              Icon(Icons.share, color: AppColors.clue, size: 16),
+              Icon(Icons.dashboard_customize_outlined,
+                  color: AppColors.clue, size: 16),
               const SizedBox(width: 8),
               Text(
                 'EVIDENCE BOARD',
@@ -473,7 +508,7 @@ class _ConnectionsTab extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${collectedIds.intersection(keyIds.toSet()).length} / ${keyIds.length}',
+                '${clues.length} piece${clues.length == 1 ? '' : 's'} collected',
                 style: GoogleFonts.robotoMono(
                   fontSize: 11,
                   color: AppColors.textTertiary,
@@ -484,7 +519,7 @@ class _ConnectionsTab extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Key pieces of evidence and how they connect.',
+            'Evidence you\'ve marked during your investigation.',
             style: GoogleFonts.roboto(
               fontSize: 12,
               color: AppColors.textTertiary,
@@ -492,149 +527,119 @@ class _ConnectionsTab extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // Evidence chain
-          ...List.generate(keyIds.length, (index) {
-            final id = keyIds[index];
-            final isFound = collectedIds.contains(id);
-            final clue = isFound
-                ? gameState.currentClues.firstWhere(
-                    (c) => c.sourceId == id,
-                    orElse: () => gameState.currentClues.first,
-                  )
-                : null;
-            final isLast = index == keyIds.length - 1;
+          // Evidence grouped by type
+          ...grouped.entries.map((entry) {
+            final type = entry.key;
+            final typeClues = entry.value;
 
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Clue node
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isFound
-                        ? AppColors.clue.withValues(alpha: 0.08)
-                        : AppColors.surfaceDark,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isFound
-                          ? AppColors.clue.withValues(alpha: 0.35)
-                          : Colors.white12,
-                    ),
-                  ),
+                // Section label
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: isFound
-                              ? AppColors.clue.withValues(alpha: 0.15)
-                              : Colors.white.withValues(alpha: 0.05),
-                          shape: BoxShape.circle,
-                        ),
-                        child: isFound
-                            ? Text(
-                                clue!.type.icon,
-                                style: const TextStyle(fontSize: 18),
-                              )
-                            : const Icon(
-                                Icons.lock_outline,
-                                color: AppColors.textTertiary,
-                                size: 18,
-                              ),
+                      Text(
+                        type.icon,
+                        style: const TextStyle(fontSize: 13),
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isFound
-                                  ? clue!.type.label.toUpperCase()
-                                  : 'EVIDENCE ${index + 1}',
-                              style: GoogleFonts.robotoMono(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: isFound
-                                    ? AppColors.clue
-                                    : AppColors.textTertiary,
-                                letterSpacing: 1.5,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              isFound
-                                  ? clue!.preview
-                                  : 'Keep investigating to uncover this clue.',
-                              style: GoogleFonts.roboto(
-                                fontSize: 13,
-                                color: isFound
-                                    ? AppColors.textPrimary
-                                    : AppColors.textTertiary,
-                                height: 1.4,
-                                fontStyle: isFound
-                                    ? FontStyle.normal
-                                    : FontStyle.italic,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                      const SizedBox(width: 6),
+                      Text(
+                        type.label.toUpperCase(),
+                        style: GoogleFonts.robotoMono(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textSecondary,
+                          letterSpacing: 1.5,
                         ),
                       ),
-                      if (isFound)
-                        Icon(
-                          Icons.bookmark,
-                          color: AppColors.clue,
-                          size: 16,
-                        ),
                     ],
                   ),
                 ),
 
-                // Connector line (not after last)
-                if (!isLast)
-                  Container(
-                    height: 28,
-                    width: 2,
-                    margin: const EdgeInsets.only(left: 35),
-                    color: isFound
-                        ? AppColors.clue.withValues(alpha: 0.3)
-                        : Colors.white12,
-                    alignment: Alignment.centerLeft,
+                // Clue cards
+                ...typeClues.map(
+                  (clue) => Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.clue.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.clue.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.clue.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              clue.type.icon,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            clue.preview,
+                            style: GoogleFonts.roboto(
+                              fontSize: 13,
+                              color: AppColors.textPrimary,
+                              height: 1.4,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.bookmark,
+                          color: AppColors.clue,
+                          size: 14,
+                        ),
+                      ],
+                    ),
                   ),
+                ),
+
+                const SizedBox(height: 12),
               ],
             );
           }),
 
-          // Summary
-          const SizedBox(height: 20),
+          // Footer hint
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppColors.backgroundSecondary,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
                 Icon(
-                  collectedIds.containsAll(keyIds)
-                      ? Icons.check_circle
-                      : Icons.info_outline,
-                  color: collectedIds.containsAll(keyIds)
-                      ? AppColors.success
-                      : AppColors.textTertiary,
-                  size: 16,
+                  Icons.info_outline,
+                  color: AppColors.textTertiary,
+                  size: 14,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    collectedIds.containsAll(keyIds)
-                        ? 'All key evidence collected. You\'re ready to make your accusation.'
-                        : 'Find all ${keyIds.length} key pieces of evidence to build your case.',
+                    'Trust your instincts. When you have enough to make a case, go to the Clues tab and tap MAKE YOUR ACCUSATION.',
                     style: GoogleFonts.roboto(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                      color: AppColors.textTertiary,
                       height: 1.4,
                     ),
                   ),
@@ -695,6 +700,15 @@ class _NotesTabState extends State<_NotesTab> {
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          Text(
+            'Your private scratchpad. Write theories, note inconsistencies, track who said what. Saved automatically.',
+            style: GoogleFonts.roboto(
+              fontSize: 12,
+              color: AppColors.textTertiary,
+              height: 1.4,
+            ),
+          ),
           const SizedBox(height: 10),
           Expanded(
             child: TextField(
@@ -748,89 +762,109 @@ class _SolveBar extends StatelessWidget {
     final clueCount = gameState.currentClues.length;
     final isReady = clueCount >= 3;
 
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        MediaQuery.of(context).padding.bottom + 12,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundSecondary,
-        border: Border(top: BorderSide(color: AppColors.surfaceDark)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Progress summary
-          if (!isReady)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: AppColors.textTertiary,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Collect at least 3 clues before solving. Found: $clueCount clue${clueCount != 1 ? 's' : ''}.',
-                      style: GoogleFonts.roboto(
-                        fontSize: 11,
-                        color: AppColors.textTertiary,
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundSecondary,
+          border: Border(top: BorderSide(color: AppColors.surfaceDark)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Progress summary
+            if (!isReady)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: AppColors.textTertiary,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Collect at least 3 clues before solving. Found: $clueCount clue${clueCount != 1 ? 's' : ''}.',
+                        style: GoogleFonts.roboto(
+                          fontSize: 11,
+                          color: AppColors.textTertiary,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-          // Solve button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                HapticService.mediumTap();
-                if (!isReady) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Keep investigating — you need at least 3 clues.',
-                        style: GoogleFonts.roboto(color: Colors.white),
+            // Solve button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  HapticService.mediumTap();
+                  if (!isReady) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Keep investigating — you need at least 3 clues.',
+                          style: GoogleFonts.roboto(color: Colors.white),
+                        ),
+                        backgroundColor: AppColors.surfaceDark,
+                        duration: const Duration(seconds: 2),
                       ),
-                      backgroundColor: AppColors.surfaceDark,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                  return;
-                }
-                Navigator.pushNamed(context, AppRoutes.solution);
-              },
-              icon: const Icon(Icons.gavel, color: Colors.white),
-              label: Text(
-                isReady ? 'MAKE YOUR ACCUSATION' : 'NOT ENOUGH EVIDENCE',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                    );
+                    return;
+                  }
+                  Navigator.pushNamed(context, AppRoutes.solution);
+                },
+                icon: const Icon(Icons.gavel, color: Colors.white),
+                label: Text(
+                  isReady ? 'MAKE YOUR ACCUSATION' : 'NOT ENOUGH EVIDENCE',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isReady ? AppColors.success : AppColors.surfaceDark,
-                disabledBackgroundColor: AppColors.surfaceDark,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: isReady
-                      ? BorderSide.none
-                      : BorderSide(color: AppColors.textTertiary),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isReady ? AppColors.success : AppColors.surfaceDark,
+                  disabledBackgroundColor: AppColors.surfaceDark,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: isReady
+                        ? BorderSide.none
+                        : BorderSide(color: AppColors.textTertiary),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Tab Description ─────────────────────────────────────────────────────────
+
+class _TabDescription extends StatelessWidget {
+  final String text;
+  const _TabDescription(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Text(
+        text,
+        style: GoogleFonts.roboto(
+          fontSize: 12,
+          color: AppColors.textTertiary,
+          height: 1.4,
+        ),
       ),
     );
   }

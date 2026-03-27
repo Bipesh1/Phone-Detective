@@ -5,11 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import '../utils/constants.dart';
-import '../providers/game_state_provider.dart';
-import 'revelation_overlay.dart';
-import 'deduction_unlock_overlay.dart';
 
 class ClueDeductionSheet {
   /// Show the "something caught your eye" discovery sheet for a confirmed key clue.
@@ -91,42 +87,6 @@ class ClueDeductionSheet {
               ),
               textAlign: TextAlign.center,
             ),
-            // Clue insight — shown when case author has defined one
-            if (insight != null && insight.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.clue.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppColors.clue.withValues(alpha: 0.25),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.insights, color: AppColors.clue, size: 14),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        insight,
-                        style: GoogleFonts.roboto(
-                          color: AppColors.clue,
-                          fontSize: 12,
-                          height: 1.4,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
             const SizedBox(height: 20),
             // Action buttons
             Row(
@@ -159,29 +119,6 @@ class ClueDeductionSheet {
                     onPressed: () {
                       Navigator.pop(ctx);
                       onConfirm();
-                      // After clue is added, check if case is now cracked
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (!context.mounted) return;
-                        final gs = Provider.of<GameStateProvider>(
-                          context,
-                          listen: false,
-                        );
-                        if (gs.pendingRevelation) {
-                          gs.clearPendingRevelation();
-                          gs.clearPendingDeductionUnlock();
-                          RevelationOverlay.show(
-                            context: context,
-                            lastCluePreview: preview,
-                          );
-                        } else if (gs.pendingDeductionUnlock != null) {
-                          final statement = gs.pendingDeductionUnlock!;
-                          gs.clearPendingDeductionUnlock();
-                          DeductionUnlockOverlay.show(
-                            context: context,
-                            statement: statement,
-                          );
-                        }
-                      });
                     },
                     icon: const Icon(Icons.bookmark_add, size: 18),
                     label: Text(

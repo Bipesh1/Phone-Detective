@@ -397,12 +397,6 @@ class _CaseIntroScreenState extends State<CaseIntroScreen>
                             caseData.difficulty.name.toUpperCase(),
                             caseData.themeColor,
                           ),
-                          const SizedBox(width: 12),
-                          _buildInfoChip(
-                            Icons.search,
-                            '${caseData.totalClues} CLUES',
-                            AppColors.clue,
-                          ),
                         ],
                       ),
                     ),

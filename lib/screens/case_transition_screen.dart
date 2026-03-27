@@ -335,12 +335,6 @@ class _CaseTransitionScreenState extends State<CaseTransitionScreen>
                                       nextCase.difficulty.name.toUpperCase(),
                                   color: nextCase.themeColor,
                                 ),
-                                const SizedBox(width: 10),
-                                _TeaserChip(
-                                  icon: Icons.search,
-                                  label: '${nextCase.totalClues} CLUES',
-                                  color: AppColors.clue,
-                                ),
                               ],
                             ),
                           ],

@@ -10,6 +10,7 @@ import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../widgets/investigation_nav_bar.dart';
 import '../widgets/tutorial_banner.dart';
+import '../widgets/app_intro_banner.dart';
 
 class ContactsAppScreen extends StatefulWidget {
   const ContactsAppScreen({super.key});
@@ -76,6 +77,16 @@ class _ContactsAppScreenState extends State<ContactsAppScreen> {
             5: 'Tap each contact to view their profile and messages.\n'
                 'Pay attention to relationships — someone had a reason to be there.',
           }),
+          const AppIntroBanner(
+            appId: 'contacts',
+            emoji: '👥',
+            appName: 'Contacts',
+            color: Color(0xFFFF9F0A),
+            description:
+                'Everyone in this phone\'s address book. Their relationship to the victim and their profile notes can point you toward who had a reason.',
+            howTo:
+                'Tap a contact to view their full profile. Hold a contact\'s name to mark them as a suspect in your journal.',
+          ),
           // Search bar
           Padding(
             padding: const EdgeInsets.all(16),

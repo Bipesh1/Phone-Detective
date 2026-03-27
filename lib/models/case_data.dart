@@ -37,6 +37,8 @@ class CaseData {
   final List<InterrogationQuestion> interrogationQuestions;
   final List<int> unlockRequires; // Case numbers that must be solved first
   final String handlerBriefing; // Encrypted message from HQ shown on hacking screen
+  final int batteryStartPercent; // Phone battery % when player picks it up (default 100)
+  final double batteryDrainPerMinute; // Drain rate per minute — 0 means static battery
 
   const CaseData({
     required this.caseNumber,
@@ -63,6 +65,8 @@ class CaseData {
     this.interrogationQuestions = const [],
     this.unlockRequires = const [],
     this.handlerBriefing = '',
+    this.batteryStartPercent = 100,
+    this.batteryDrainPerMinute = 0,
   });
 
   Contact? getContact(String id) {
@@ -183,6 +187,9 @@ class CaseData {
           .toList(),
 
       handlerBriefing: (json['handler_briefing'] as String?) ?? '',
+      batteryStartPercent: (json['battery_start_percent'] as int?) ?? 100,
+      batteryDrainPerMinute:
+          ((json['battery_drain_per_minute'] as num?) ?? 0).toDouble(),
     );
   }
 
@@ -192,11 +199,6 @@ class CaseData {
     assert(scenario.isNotEmpty, 'Case $caseNumber: scenario is empty');
     assert(objective.isNotEmpty, 'Case $caseNumber: objective is empty');
     assert(contacts.isNotEmpty, 'Case $caseNumber: no contacts defined');
-    assert(solution.keyClueIds.isNotEmpty, 'Case $caseNumber: no keyClueIds defined');
-    assert(
-      totalClues == solution.keyClueIds.length,
-      'Case $caseNumber: totalClues ($totalClues) != keyClueIds.length (${solution.keyClueIds.length})',
-    );
     // Tutorial cases (difficulty 0) are intentionally simpler — skip checks
     // that require red herrings, a timeline, and suspense events.
     if (difficulty != CaseDifficulty.tutorial) {
@@ -319,6 +321,7 @@ class CaseSolution {
   final String resolution; // What happened after solving
   final List<SolutionOption> options; // Multiple choice options
   final List<DeductionItem> deductionChecklist; // Logical deductions to verify
+  final List<MotiveOption> motiveOptions; // Motive choices for the accusation screen
   final List<String> redHerringIds; // Misleading clue IDs
   /// Per-clue insight shown when the player marks a key clue.
   /// Key = clue/item ID, Value = one-sentence explanation of its significance.
@@ -332,6 +335,7 @@ class CaseSolution {
     required this.resolution,
     required this.options,
     this.deductionChecklist = const [],
+    this.motiveOptions = const [],
     this.redHerringIds = const [],
     this.clueInsights = const {},
   });
@@ -348,6 +352,9 @@ class CaseSolution {
           .toList(),
       deductionChecklist: (json['deduction_checklist'] as List<dynamic>? ?? [])
           .map((e) => DeductionItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      motiveOptions: (json['motive_options'] as List<dynamic>? ?? [])
+          .map((e) => MotiveOption.fromJson(e as Map<String, dynamic>))
           .toList(),
       redHerringIds:
           (json['red_herrings'] as List<dynamic>? ?? []).cast<String>(),
@@ -399,6 +406,26 @@ class SolutionOption {
       label: (json['label'] as String?) ?? '',
       isCorrect: (json['is_correct'] as bool?) ?? false,
       feedback: (json['feedback'] as String?) ?? '',
+    );
+  }
+}
+
+class MotiveOption {
+  final String id;
+  final String text;
+  final bool isCorrect;
+
+  const MotiveOption({
+    required this.id,
+    required this.text,
+    required this.isCorrect,
+  });
+
+  factory MotiveOption.fromJson(Map<String, dynamic> json) {
+    return MotiveOption(
+      id: (json['id'] as String?) ?? '',
+      text: (json['text'] as String?) ?? '',
+      isCorrect: (json['is_correct'] as bool?) ?? false,
     );
   }
 }

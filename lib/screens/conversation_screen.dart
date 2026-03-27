@@ -299,13 +299,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
       return;
     }
 
-    // Not yet marked — check if this is actually a key clue
-    if (!gameState.isKeyClue(message.id)) {
-      ClueDeductionSheet.showNothing(context);
-      return;
-    }
-
-    // Key clue found — show deduction confirmation
+    // Not yet marked — show confirmation sheet
     final preview =
         '$senderName: ${message.content.length > 80 ? '${message.content.substring(0, 80)}...' : message.content}';
     final insight = gameState.currentCase.solution.clueInsights[message.id];

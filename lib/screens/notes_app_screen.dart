@@ -11,6 +11,7 @@ import '../services/haptic_service.dart';
 import '../widgets/clue_hint_banner.dart';
 import '../widgets/investigation_nav_bar.dart';
 import '../widgets/tutorial_banner.dart';
+import '../widgets/app_intro_banner.dart';
 
 class NotesAppScreen extends StatelessWidget {
   const NotesAppScreen({super.key});
@@ -60,6 +61,16 @@ class NotesAppScreen extends StatelessWidget {
                   7: 'Open each note carefully. One may be locked — '
                       'the password is hidden somewhere else on this phone.',
                 }),
+                const AppIntroBanner(
+                  appId: 'notes',
+                  emoji: '📝',
+                  appName: 'Notes',
+                  color: Color(0xFFFFD60A),
+                  description:
+                      'Private notes — plans, reminders, passwords, things people write when they think no one is watching. Some notes may be locked.',
+                  howTo:
+                      'Tap a note to read it. If it\'s locked, find the password elsewhere on the phone. Hold a note to mark it as evidence.',
+                ),
                 ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.notes),
                 Expanded(
                   child: ListView.builder(

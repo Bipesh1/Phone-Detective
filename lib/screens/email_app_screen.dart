@@ -14,6 +14,7 @@ import '../widgets/password_unlock_widget.dart';
 import '../widgets/data_restore_widget.dart';
 import '../widgets/investigation_nav_bar.dart';
 import '../widgets/tutorial_banner.dart';
+import '../widgets/app_intro_banner.dart';
 
 class EmailAppScreen extends StatefulWidget {
   const EmailAppScreen({super.key});
@@ -80,6 +81,16 @@ class _EmailAppScreenState extends State<EmailAppScreen> {
                   8: 'Check every email — especially automated alerts.\n'
                       'A timestamp in an email could change everything. Long-press to mark as evidence.',
                 }),
+                const AppIntroBanner(
+                  appId: 'email',
+                  emoji: '📧',
+                  appName: 'Mail',
+                  color: Color(0xFF007AFF),
+                  description:
+                      'Business and personal emails. Inbox is just the start — check the Drafts folder. Important things are sometimes written but never sent.',
+                  howTo:
+                      'Tap the folder name at the top to switch between Inbox, Sent, and Drafts. Hold an email to mark it as evidence.',
+                ),
                 ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.email),
                 Expanded(
                   child: ListView.builder(
@@ -264,8 +275,6 @@ class _EmailTile extends StatelessWidget {
                             duration: Duration(seconds: 1),
                           ),
                         );
-                      } else if (!gameState.isKeyClue(email.id)) {
-                        ClueDeductionSheet.showNothing(context);
                       } else {
                         Navigator.pop(sheetContext); // close email sheet first
                         ClueDeductionSheet.show(
@@ -403,8 +412,6 @@ class _EmailTile extends StatelessWidget {
           duration: Duration(seconds: 1),
         ),
       );
-    } else if (!gameState.isKeyClue(email.id)) {
-      ClueDeductionSheet.showNothing(context);
     } else {
       ClueDeductionSheet.show(
         context: context,

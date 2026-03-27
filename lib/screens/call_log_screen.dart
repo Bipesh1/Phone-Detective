@@ -14,6 +14,7 @@ import '../widgets/clue_hint_banner.dart';
 import '../widgets/voicemail_player.dart';
 import '../widgets/investigation_nav_bar.dart';
 import '../widgets/tutorial_banner.dart';
+import '../widgets/app_intro_banner.dart';
 
 class CallLogScreen extends StatelessWidget {
   const CallLogScreen({super.key});
@@ -56,6 +57,16 @@ class CallLogScreen extends StatelessWidget {
                   6: 'Check who called that night and when.\n'
                       'Missed calls and voicemails can reveal motive and timing.',
                 }),
+                const AppIntroBanner(
+                  appId: 'call_log',
+                  emoji: '📞',
+                  appName: 'Recents',
+                  color: Color(0xFF32ADE6),
+                  description:
+                      'The full call history — incoming, outgoing, missed, and voicemails. A call made right before the incident, or one that went unanswered, tells its own story.',
+                  howTo:
+                      'Tap a call to see its details and play any voicemail. Hold a suspicious entry to mark it as evidence.',
+                ),
                 ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.callLog),
                 Expanded(
                   child: ListView.builder(
@@ -404,42 +415,38 @@ class _CallTile extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     Navigator.pop(ctx);
-                    if (!gameState.isKeyClue(call.id)) {
-                      ClueDeductionSheet.showNothing(context);
-                    } else {
-                      final callDesc =
-                          '${call.type.name} call — ${contact?.fullName ?? call.phoneNumber}'
-                          '${call.transcription != null ? ' (Voicemail)' : ''}';
-                      final insight = gameState.currentCase.solution
-                          .clueInsights[call.id];
-                      ClueDeductionSheet.show(
-                        context: context,
-                        preview: callDesc,
-                        insight: insight,
-                        onConfirm: () {
-                          gameState.addClue(Clue(
-                            id: call.id,
-                            type: ClueType.call,
-                            sourceId: call.id,
-                            preview: callDesc,
-                            foundAt: DateTime.now(),
-                          ));
-                          HapticService.heavyTap();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  Icon(Icons.bookmark, color: AppColors.clue),
-                                  const SizedBox(width: 8),
-                                  const Text('Added to Evidence Board'),
-                                ],
-                              ),
-                              duration: const Duration(seconds: 2),
+                    final callDesc =
+                        '${call.type.name} call — ${contact?.fullName ?? call.phoneNumber}'
+                        '${call.transcription != null ? ' (Voicemail)' : ''}';
+                    final insight = gameState.currentCase.solution
+                        .clueInsights[call.id];
+                    ClueDeductionSheet.show(
+                      context: context,
+                      preview: callDesc,
+                      insight: insight,
+                      onConfirm: () {
+                        gameState.addClue(Clue(
+                          id: call.id,
+                          type: ClueType.call,
+                          sourceId: call.id,
+                          preview: callDesc,
+                          foundAt: DateTime.now(),
+                        ));
+                        HapticService.heavyTap();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(Icons.bookmark, color: AppColors.clue),
+                                const SizedBox(width: 8),
+                                const Text('Added to Evidence Board'),
+                              ],
                             ),
-                          );
-                        },
-                      );
-                    }
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    );
                   },
                   icon: const Icon(Icons.search, color: Colors.black87),
                   label: Text(

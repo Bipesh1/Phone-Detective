@@ -138,6 +138,7 @@ class AppRoutes {
           CaseCompleteScreen(
             isCorrect: args?['isCorrect'] ?? false,
             timeTaken: args?['timeTaken'] ?? Duration.zero,
+            motiveCorrect: args?['motiveCorrect'] as bool?,
           ),
           settings,
         );

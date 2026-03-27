@@ -10,6 +10,7 @@ import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../widgets/investigation_nav_bar.dart';
 import '../widgets/tutorial_banner.dart';
+import '../widgets/app_intro_banner.dart';
 
 class MessagesAppScreen extends StatelessWidget {
   const MessagesAppScreen({super.key});
@@ -51,6 +52,16 @@ class MessagesAppScreen extends StatelessWidget {
                   3: 'Open a conversation and read carefully.\nIf a message feels wrong, long-press it to mark it as a clue.',
                   5: 'Good work! Tap ← to go back to the main phone screen.',
                 }),
+                const AppIntroBanner(
+                  appId: 'messages',
+                  emoji: '💬',
+                  appName: 'Messages',
+                  color: Color(0xFF34C759),
+                  description:
+                      'Every text conversation on this phone. Read each one — tone, timing, and who\'s missing from the thread can all matter.',
+                  howTo:
+                      'Tap a conversation to open it. Inside, hold any message that feels suspicious to mark it as evidence.',
+                ),
                 Expanded(
                   child: ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),

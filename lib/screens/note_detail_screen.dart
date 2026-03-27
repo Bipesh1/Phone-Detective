@@ -174,8 +174,6 @@ class NoteDetailScreen extends StatelessWidget {
           duration: Duration(seconds: 1),
         ),
       );
-    } else if (!gameState.isKeyClue(noteId)) {
-      ClueDeductionSheet.showNothing(context);
     } else {
       final contentSnippet = note.content.length > 60
           ? '${note.content.substring(0, 60)}...'

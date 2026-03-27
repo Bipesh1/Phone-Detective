@@ -13,11 +13,13 @@ import '../services/haptic_service.dart';
 class CaseCompleteScreen extends StatefulWidget {
   final bool isCorrect;
   final Duration timeTaken;
+  final bool? motiveCorrect;
 
   const CaseCompleteScreen({
     super.key,
     required this.isCorrect,
     required this.timeTaken,
+    this.motiveCorrect,
   });
 
   @override
@@ -161,10 +163,9 @@ class _CaseCompleteScreenState extends State<CaseCompleteScreen>
                         // Detective rank badge
                         _DetectiveRank(
                           isCorrect: widget.isCorrect,
-                          cluesFound: gameState.currentClues.length,
-                          totalClues: caseData.totalClues,
+                          motiveCorrect: widget.motiveCorrect,
                           redHerringsMarked: gameState.redHerringCount,
-                          timelineCompleted: gameState.timelineCompleted,
+                          hintsUsed: gameState.hintsUsed,
                         ),
 
                         const SizedBox(height: 24),
@@ -185,8 +186,8 @@ class _CaseCompleteScreenState extends State<CaseCompleteScreen>
                         _StatsCard(
                           timeTaken: widget.timeTaken,
                           cluesFound: gameState.currentClues.length,
-                          totalClues: caseData.totalClues,
                           suspectsMarked: gameState.currentSuspects.length,
+                          motiveCorrect: widget.motiveCorrect,
                         ),
 
                         // ── Resolution ──
@@ -205,8 +206,7 @@ class _CaseCompleteScreenState extends State<CaseCompleteScreen>
                           const SizedBox(height: 16),
                           _RatingPanel(
                             timeTaken: widget.timeTaken,
-                            cluesFound: gameState.currentClues.length,
-                            totalClues: caseData.totalClues,
+                            motiveCorrect: widget.motiveCorrect,
                             redHerringsMarked: gameState.redHerringCount,
                             hintsUsed: gameState.hintsUsed,
                             difficulty: caseData.difficulty,
@@ -236,30 +236,28 @@ class _CaseCompleteScreenState extends State<CaseCompleteScreen>
 
 class _DetectiveRank extends StatelessWidget {
   final bool isCorrect;
-  final int cluesFound;
-  final int totalClues;
+  final bool? motiveCorrect;
   final int redHerringsMarked;
-  final bool timelineCompleted;
+  final int hintsUsed;
 
   const _DetectiveRank({
     required this.isCorrect,
-    required this.cluesFound,
-    required this.totalClues,
     required this.redHerringsMarked,
-    required this.timelineCompleted,
+    required this.hintsUsed,
+    this.motiveCorrect,
   });
 
   String get rank {
-    if (!isCorrect) return '🔎 STILL LEARNING';
-    double score = 0;
-    if (totalClues > 0) score += (cluesFound / totalClues) * 40;
-    if (redHerringsMarked == 0) score += 30;
-    if (timelineCompleted) score += 30;
+    if (!isCorrect) return 'STILL LEARNING';
+    int score = 60; // base for correct suspect
+    if (motiveCorrect == true) score += 25;
+    if (redHerringsMarked == 0) score += 10;
+    if (hintsUsed == 0) score += 5;
 
-    if (score >= 90) return '⭐ MASTER DETECTIVE';
-    if (score >= 70) return '🔍 SENIOR DETECTIVE';
-    if (score >= 50) return '🕵️ DETECTIVE';
-    return '📋 ROOKIE DETECTIVE';
+    if (score >= 90) return 'MASTER DETECTIVE';
+    if (score >= 75) return 'SENIOR DETECTIVE';
+    if (score >= 60) return 'DETECTIVE';
+    return 'ROOKIE DETECTIVE';
   }
 
   Color get rankColor {
@@ -427,14 +425,14 @@ class _FactRow extends StatelessWidget {
 class _StatsCard extends StatelessWidget {
   final Duration timeTaken;
   final int cluesFound;
-  final int totalClues;
   final int suspectsMarked;
+  final bool? motiveCorrect;
 
   const _StatsCard({
     required this.timeTaken,
     required this.cluesFound,
-    required this.totalClues,
     required this.suspectsMarked,
+    this.motiveCorrect,
   });
 
   String _formatDuration(Duration d) {
@@ -464,10 +462,9 @@ class _StatsCard extends StatelessWidget {
           const Divider(color: Colors.white12, height: 16),
           _StatRow(
             icon: Icons.bookmark,
-            label: 'Clues Found',
-            value: '$cluesFound / $totalClues',
-            valueColor:
-                cluesFound == totalClues ? AppColors.success : AppColors.clue,
+            label: 'Clues Logged',
+            value: '$cluesFound',
+            valueColor: AppColors.clue,
           ),
           const Divider(color: Colors.white12, height: 16),
           _StatRow(
@@ -475,6 +472,15 @@ class _StatsCard extends StatelessWidget {
             label: 'Suspects Marked',
             value: '$suspectsMarked',
           ),
+          if (motiveCorrect != null) ...[
+            const Divider(color: Colors.white12, height: 16),
+            _StatRow(
+              icon: motiveCorrect! ? Icons.check_circle : Icons.cancel,
+              label: 'Motive Identified',
+              value: motiveCorrect! ? 'Correct' : 'Wrong',
+              valueColor: motiveCorrect! ? AppColors.success : AppColors.danger,
+            ),
+          ],
         ],
       ),
     );
@@ -578,29 +584,18 @@ class _ResolutionCard extends StatelessWidget {
 
 class _RatingPanel extends StatelessWidget {
   final Duration timeTaken;
-  final int cluesFound;
-  final int totalClues;
+  final bool? motiveCorrect;
   final int redHerringsMarked;
   final int hintsUsed;
   final CaseDifficulty difficulty;
 
   const _RatingPanel({
     required this.timeTaken,
-    required this.cluesFound,
-    required this.totalClues,
     required this.redHerringsMarked,
     required this.hintsUsed,
     required this.difficulty,
+    this.motiveCorrect,
   });
-
-  // Thresholds tighten with difficulty
-  double get _clueThreshold {
-    if (difficulty == CaseDifficulty.hard ||
-        difficulty == CaseDifficulty.veryHard) {
-      return 1.0; // all clues required on hard+
-    }
-    return 0.8; // 80% for easy / medium
-  }
 
   int get _timeLimit {
     switch (difficulty) {
@@ -614,9 +609,10 @@ class _RatingPanel extends StatelessWidget {
   }
 
   int get stars {
-    int s = 1; // always at least 1 for a correct answer
-    final clueRatio = totalClues > 0 ? cluesFound / totalClues : 0.0;
-    if (clueRatio >= _clueThreshold && redHerringsMarked == 0) s++;
+    int s = 1; // always at least 1 for a correct accusation
+    // Second star: correct motive (or no motive available) + no red herrings
+    if (motiveCorrect != false && redHerringsMarked == 0) s++;
+    // Third star: previous + no hints + under time limit
     if (s >= 2 && hintsUsed == 0 && timeTaken.inMinutes < _timeLimit) s++;
     return s.clamp(1, 3);
   }
@@ -697,21 +693,16 @@ class _RatingPanel extends StatelessWidget {
 
   String _improvementHint(int s) {
     if (redHerringsMarked > 0) {
-      return 'You marked a red herring. Stay focused on the key evidence next time.';
+      return 'You marked misleading evidence. Stay focused on what actually connects next time.';
+    }
+    if (motiveCorrect == false) {
+      return 'You got the culprit but misread the motive. Dig deeper into the evidence next time.';
     }
     if (hintsUsed > 0) {
       return 'You used $hintsUsed hint${hintsUsed != 1 ? 's' : ''}. Try solving without them for a higher rating.';
     }
-    if (totalClues > 0 && cluesFound < totalClues) {
-      final missed = totalClues - cluesFound;
-      if (difficulty == CaseDifficulty.hard ||
-          difficulty == CaseDifficulty.veryHard) {
-        return 'Hard cases require all $totalClues clues. You missed $missed — search every app.';
-      }
-      return 'You missed $missed clue${missed != 1 ? 's' : ''}. Search every app thoroughly next time.';
-    }
     final limit = _timeLimit;
-    return 'Solve in under ${limit}m with no hints to earn 3 stars.';
+    return 'Solve in under ${limit}m with no hints and correct motive to earn 3 stars.';
   }
 }
 

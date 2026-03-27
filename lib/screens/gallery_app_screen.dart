@@ -10,6 +10,7 @@ import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../widgets/investigation_nav_bar.dart';
 import '../widgets/tutorial_banner.dart';
+import '../widgets/app_intro_banner.dart';
 
 class GalleryAppScreen extends StatefulWidget {
   const GalleryAppScreen({super.key});
@@ -76,6 +77,16 @@ class _GalleryAppScreenState extends State<GalleryAppScreen>
             9: 'Tap a photo to inspect it fully. Check timestamps and locations.\n'
                 'The most recent photo may hold the biggest clue.',
           }),
+          const AppIntroBanner(
+            appId: 'gallery',
+            emoji: '📷',
+            appName: 'Gallery',
+            color: Color(0xFFFF375F),
+            description:
+                'Photos and screenshots saved to this phone. Some were taken by the owner as evidence for themselves — read every description carefully.',
+            howTo:
+                'Tap a photo to examine it fully. Hold it to mark it as evidence.',
+          ),
           Expanded(
             child: TabBarView(
               controller: _tabController,

@@ -413,8 +413,34 @@ class _StatusBar extends StatelessWidget {
 class _BatteryWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final gameState =
+        Provider.of<GameStateProvider>(context);
+    final pct = gameState.batteryPercent / 100.0;
+    final isDraining = gameState.currentCase.batteryDrainPerMinute > 0;
+
+    Color fillColor;
+    if (pct > 0.4) {
+      fillColor = AppColors.success;
+    } else if (pct > 0.2) {
+      fillColor = AppColors.warning;
+    } else {
+      fillColor = AppColors.danger;
+    }
+
     return Row(
       children: [
+        if (isDraining)
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Text(
+              '${gameState.batteryPercent.toInt()}%',
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         Container(
           width: 20,
           height: 10,
@@ -426,10 +452,10 @@ class _BatteryWidget extends StatelessWidget {
             padding: const EdgeInsets.all(1),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
-              widthFactor: 0.80,
+              widthFactor: pct.clamp(0.0, 1.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppColors.success,
+                  color: fillColor,
                   borderRadius: BorderRadius.circular(1),
                 ),
               ),
@@ -464,7 +490,6 @@ class _CaseHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final caseData = gameState.currentCase;
     final clueCount = gameState.currentClues.length;
-    final totalClues = caseData.totalClues;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -498,8 +523,8 @@ class _CaseHeader extends StatelessWidget {
             ),
           ),
 
-          // Clue progress pill
-          if (totalClues > 0)
+          // Clue count (no total — player must discover what matters)
+          if (clueCount > 0)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
@@ -515,7 +540,7 @@ class _CaseHeader extends StatelessWidget {
                   Icon(Icons.bookmark, color: AppColors.clue, size: 13),
                   const SizedBox(width: 4),
                   Text(
-                    '$clueCount/$totalClues',
+                    '$clueCount logged',
                     style: GoogleFonts.robotoMono(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,

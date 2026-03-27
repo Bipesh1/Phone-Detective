@@ -1,5 +1,6 @@
 // Phone Detective - Game State Provider
 
+import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import '../services/save_service.dart';
@@ -9,10 +10,10 @@ import '../utils/constants.dart';
 
 class GameStateProvider extends ChangeNotifier {
   final SaveService _saveService = SaveService();
+  Timer? _batteryTimer;
 
-  List<CaseData> _allCases = []; // Start empty, load from DB
+  List<CaseData> _allCases = [];
   int _currentCaseNumber = 1;
-  int _tutorialStep = 0; // 0: Inactive, 1+: Active Steps
 
   Set<int> _solvedCases = {};
   List<Clue> _currentClues = [];
@@ -20,30 +21,21 @@ class GameStateProvider extends ChangeNotifier {
   String _playerNotes = '';
   DateTime? _caseStartTime;
   Set<String> _unlockedNotes = {};
-  Set<String> _unlockedItemIds = {}; // For password-protected items
-  Set<String> _restoredItemIds = {}; // For corrupted items
-  Map<String, int> _revealedHints =
-      {}; // stepHintId -> number of hints revealed
+  Set<String> _unlockedItemIds = {};
+  Set<String> _restoredItemIds = {};
+  Map<String, int> _revealedHints = {};
   bool _isInitialized = false;
   bool _isRemote = false;
 
   // Suspense & thriller state
   Set<String> _firedSuspenseEvents = {};
   Set<String> _answeredInterrogations = {};
-  Set<String> _verifiedDeductions = {};
   bool _timelineCompleted = false;
   SuspenseEvent? _pendingSuspenseEvent;
-
-  // Revelation state
-  bool _pendingRevelation = false;
-  bool _revelationShown = false;
-
-  // Deduction auto-unlock state
-  String? _pendingDeductionUnlock;
-  Set<String> _autoUnlockedDeductions = {};
-
-  // Timed suspense guard — prevents re-firing when home screen rebuilds
   bool _timedEventsStarted = false;
+
+  // Battery system — drains in real time to create urgency
+  double _batteryPercent = 100.0;
 
   // Getters
   List<CaseData> get cases => _allCases;
@@ -62,19 +54,25 @@ class GameStateProvider extends ChangeNotifier {
   bool get hasSaveData => _saveService.hasSaveData();
   Set<String> get firedSuspenseEvents => _firedSuspenseEvents;
   Set<String> get answeredInterrogations => _answeredInterrogations;
-  Set<String> get verifiedDeductions => _verifiedDeductions;
   bool get timelineCompleted => _timelineCompleted;
   SuspenseEvent? get pendingSuspenseEvent => _pendingSuspenseEvent;
-  bool get pendingRevelation => _pendingRevelation;
-  String? get pendingDeductionUnlock => _pendingDeductionUnlock;
   int get hintsUsed => _revealedHints.values.fold(0, (sum, v) => sum + v);
+  double get batteryPercent => _batteryPercent;
+  bool get isBatteryDead => _batteryPercent <= 0;
+
+  // Tutorial stubs — tutorial is disabled; overlays never show
+  int get tutorialStep => 0;
+  bool get isTutorialActive => false;
+  void checkTutorial() {}
+  void startTutorial() {}
+  void nextTutorialStep() {}
+  void advanceTutorialIfOnStep(int step) {}
+  Future<void> endTutorial() async {}
 
   CaseData get currentCase {
-    // Find case by number
     try {
       return _allCases.firstWhere((c) => c.caseNumber == _currentCaseNumber);
     } catch (_) {
-      // Fallback to first case if not found
       return _allCases.isNotEmpty ? _allCases[0] : allCases[0];
     }
   }
@@ -84,12 +82,18 @@ class GameStateProvider extends ChangeNotifier {
     return DateTime.now().difference(_caseStartTime!);
   }
 
-  // Initialization
+  @override
+  void dispose() {
+    _batteryTimer?.cancel();
+    super.dispose();
+  }
+
+  // ============ INITIALIZATION ============
+
   Future<void> init() async {
     await _saveService.init();
-    await _loadRemoteCases(); // Fetch new cases
+    await _loadRemoteCases();
     await _loadSavedState();
-    checkTutorial();
     _isInitialized = true;
     notifyListeners();
   }
@@ -101,16 +105,13 @@ class GameStateProvider extends ChangeNotifier {
         _allCases = remoteCases;
         _isRemote = true;
       } else {
-        // Remote returned empty list (valid connection, just no cases)
         debugPrint('Remote DB connected but empty. No cases loaded.');
         _allCases = [];
         _isRemote = true;
       }
 
-      // Sort by case number
       _allCases.sort((a, b) => a.caseNumber.compareTo(b.caseNumber));
 
-      // Validate each case in debug mode (throws AssertionError if required fields missing)
       for (final c in _allCases) {
         assert(() {
           c.validate();
@@ -118,16 +119,14 @@ class GameStateProvider extends ChangeNotifier {
         }());
       }
 
-      // If we have cases and current case is invalid, reset to first
       if (_allCases.isNotEmpty &&
           _allCases.every((c) => c.caseNumber != _currentCaseNumber)) {
         _currentCaseNumber = _allCases.first.caseNumber;
       } else if (_allCases.isEmpty) {
-        _currentCaseNumber = 0; // No cases available
+        _currentCaseNumber = 0;
       }
     } catch (e) {
       debugPrint('Failed to load remote cases: $e');
-      // Fallback to static cases if remote fails
       if (_allCases.isEmpty) {
         _allCases = [...allCases];
         _isRemote = false;
@@ -157,7 +156,8 @@ class GameStateProvider extends ChangeNotifier {
     }
   }
 
-  // Case Management
+  // ============ CASE MANAGEMENT ============
+
   Future<void> startCase(int caseNumber) async {
     _currentCaseNumber = caseNumber;
     _currentClues = _saveService.getClues(caseNumber);
@@ -167,38 +167,44 @@ class GameStateProvider extends ChangeNotifier {
     _unlockedItemIds = _saveService.getUnlockedItems(caseNumber);
     _restoredItemIds = _saveService.getRestoredItems(caseNumber);
 
-    // Set start time if not already set
     _caseStartTime = _saveService.getCaseStartTime(caseNumber);
     if (_caseStartTime == null) {
       _caseStartTime = DateTime.now();
       await _saveService.saveCaseStartTime(caseNumber, _caseStartTime!);
     }
 
-    _pendingRevelation = false;
-    _revelationShown = false;
-    _pendingDeductionUnlock = null;
-    _autoUnlockedDeductions = {};
     _timedEventsStarted = false;
+    _initBattery();
     await _saveService.saveCurrentCase(caseNumber);
-    checkTutorial();
     notifyListeners();
+  }
+
+  void _initBattery() {
+    _batteryTimer?.cancel();
+    final caseData = currentCase;
+    _batteryPercent = caseData.batteryStartPercent.toDouble();
+    final drain = caseData.batteryDrainPerMinute;
+    if (drain <= 0) return;
+
+    // Tick every 10 seconds; drain = drainPerMinute / 6
+    _batteryTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _batteryPercent -= drain / 6.0;
+      _batteryPercent = _batteryPercent.clamp(0.0, 100.0);
+      if (_batteryPercent <= 0) timer.cancel();
+      notifyListeners();
+    });
   }
 
   Future<void> solveCase() async {
     _solvedCases.add(_currentCaseNumber);
+    _batteryTimer?.cancel();
     await _saveService.markCaseSolved(_currentCaseNumber);
-    // End tutorial when case is correctly solved
-    if (_tutorialStep > 0) {
-      _tutorialStep = 0;
-      await _saveService.saveTutorialCompleted(true);
-    }
     notifyListeners();
   }
 
   bool isCaseSolved(int caseNumber) => _solvedCases.contains(caseNumber);
 
   bool isCaseUnlocked(int caseNumber) {
-    // Find case data for this case number
     CaseData? caseData;
     for (final c in _allCases) {
       if (c.caseNumber == caseNumber) {
@@ -207,7 +213,6 @@ class GameStateProvider extends ChangeNotifier {
       }
     }
 
-    // Use DB unlock_requires if available, else fallback to hardcoded map
     final List<int> required;
     if (caseData != null && caseData.unlockRequires.isNotEmpty) {
       required = caseData.unlockRequires;
@@ -219,59 +224,21 @@ class GameStateProvider extends ChangeNotifier {
 
     return required.every((req) {
       if (_solvedCases.contains(req)) return true;
-      // If the required case doesn't exist in loaded cases, treat as met
       final requiredCaseExists = _allCases.any((c) => c.caseNumber == req);
       if (!requiredCaseExists) return true;
       return false;
     });
   }
 
-  void clearPendingRevelation() {
-    _pendingRevelation = false;
-  }
+  // ============ CLUE MANAGEMENT ============
 
-  void clearPendingDeductionUnlock() {
-    _pendingDeductionUnlock = null;
-  }
-
-  // Clue Management
   Future<void> addClue(Clue clue) async {
     if (_currentClues.any((c) => c.sourceId == clue.sourceId)) return;
 
     _currentClues.add(clue);
     await _saveService.saveClues(_currentCaseNumber, _currentClues);
-
-    // Auto-unlock the first newly-completed deduction (shows one insight per clue mark)
-    if (_pendingDeductionUnlock == null) {
-      for (final deduction in currentCase.solution.deductionChecklist) {
-        if (_autoUnlockedDeductions.contains(deduction.id)) continue;
-        final allFound = deduction.linkedClueIds.every(
-          (cid) => _currentClues.any((c) => c.sourceId == cid),
-        );
-        if (allFound) {
-          _autoUnlockedDeductions.add(deduction.id);
-          _pendingDeductionUnlock = deduction.statement;
-          break;
-        }
-      }
-    }
-
-    // Check if all key clues are now collected
-    if (!_revelationShown) {
-      final keyIds = currentCase.solution.keyClueIds;
-      if (keyIds.isNotEmpty) {
-        final foundKeyCount =
-            _currentClues.where((c) => keyIds.contains(c.sourceId)).length;
-        if (foundKeyCount >= keyIds.length) {
-          _pendingRevelation = true;
-          _revelationShown = true;
-        }
-      }
-    }
-
     notifyListeners();
 
-    // Check for suspense events triggered by this clue
     _checkSuspenseEvents(clue.sourceId);
   }
 
@@ -285,14 +252,6 @@ class GameStateProvider extends ChangeNotifier {
     return _currentClues.any((c) => c.sourceId == sourceId);
   }
 
-  /// Returns true if [itemId] is a key clue for the current case.
-  /// Falls back to true (allow any) when no key_clue_ids are defined.
-  bool isKeyClue(String itemId) {
-    final keyClueIds = currentCase.solution.keyClueIds;
-    if (keyClueIds.isEmpty) return true;
-    return keyClueIds.contains(itemId);
-  }
-
   Future<void> updateClueNote(String clueId, String note) async {
     final index = _currentClues.indexWhere((c) => c.id == clueId);
     if (index != -1) {
@@ -302,7 +261,8 @@ class GameStateProvider extends ChangeNotifier {
     }
   }
 
-  // Suspect Management
+  // ============ SUSPECT MANAGEMENT ============
+
   Future<void> toggleSuspect(String contactId) async {
     if (_currentSuspects.contains(contactId)) {
       _currentSuspects.remove(contactId);
@@ -315,26 +275,27 @@ class GameStateProvider extends ChangeNotifier {
 
   bool isSuspect(String contactId) => _currentSuspects.contains(contactId);
 
-  // Player Notes
+  // ============ PLAYER NOTES ============
+
   Future<void> updatePlayerNotes(String notes) async {
     _playerNotes = notes;
     await _saveService.savePlayerNotes(_currentCaseNumber, notes);
     notifyListeners();
   }
 
-  // Locked Notes
+  // ============ LOCKED / CORRUPTED ITEMS ============
+
   Future<void> unlockNote(String noteId) async {
     _unlockedNotes.add(noteId);
-    notifyListeners(); // Update UI immediately
+    notifyListeners();
     await _saveService.saveUnlockedNotes(_currentCaseNumber, _unlockedNotes);
   }
 
   bool isNoteUnlocked(String noteId) => _unlockedNotes.contains(noteId);
 
-  // Evidence Locking & Corruption
   Future<void> unlockItem(String itemId) async {
     _unlockedItemIds.add(itemId);
-    notifyListeners(); // Update UI immediately
+    notifyListeners();
     await _saveService.saveUnlockedItems(_currentCaseNumber, _unlockedItemIds);
   }
 
@@ -342,13 +303,14 @@ class GameStateProvider extends ChangeNotifier {
 
   Future<void> restoreItem(String itemId) async {
     _restoredItemIds.add(itemId);
-    notifyListeners(); // Update UI immediately
+    notifyListeners();
     await _saveService.saveRestoredItems(_currentCaseNumber, _restoredItemIds);
   }
 
   bool isItemRestored(String itemId) => _restoredItemIds.contains(itemId);
 
-  // Step Hints - Progressive reveal
+  // ============ STEP HINTS ============
+
   int getRevealedHintCount(String stepHintId) {
     return _revealedHints[stepHintId] ?? 0;
   }
@@ -373,14 +335,11 @@ class GameStateProvider extends ChangeNotifier {
           _pendingSuspenseEvent = event;
           notifyListeners();
         });
-        break; // Only fire one at a time
+        break;
       }
     }
   }
 
-  /// Start timed suspense events (afterTime trigger).
-  /// Guarded at the provider level so it fires exactly once per case session,
-  /// regardless of how many times PhoneHomeScreen rebuilds.
   void startTimedEvents() {
     if (_timedEventsStarted) return;
     _timedEventsStarted = true;
@@ -390,7 +349,6 @@ class GameStateProvider extends ChangeNotifier {
       if (event.trigger == SuspenseTrigger.afterTime) {
         _firedSuspenseEvents.add(event.id);
         Future.delayed(Duration(seconds: event.delaySeconds), () {
-          // Only fire if nothing else is showing — don't re-queue, just drop
           if (_pendingSuspenseEvent == null) {
             _pendingSuspenseEvent = event;
             notifyListeners();
@@ -400,7 +358,6 @@ class GameStateProvider extends ChangeNotifier {
     }
   }
 
-  /// Fire onOpen suspense events for the given app name.
   void triggerOnOpenSuspenseEvent(String appName) {
     for (final event in currentCase.suspenseEvents) {
       if (_firedSuspenseEvents.contains(event.id)) continue;
@@ -413,7 +370,7 @@ class GameStateProvider extends ChangeNotifier {
             notifyListeners();
           }
         });
-        break; // One event per open
+        break;
       }
     }
   }
@@ -433,28 +390,6 @@ class GameStateProvider extends ChangeNotifier {
   bool isInterrogationAnswered(String questionId) =>
       _answeredInterrogations.contains(questionId);
 
-  // ============ DEDUCTION CHECKLIST ============
-
-  void toggleDeduction(String deductionId) {
-    if (_verifiedDeductions.contains(deductionId)) {
-      _verifiedDeductions.remove(deductionId);
-    } else {
-      _verifiedDeductions.add(deductionId);
-    }
-    notifyListeners();
-  }
-
-  bool isDeductionVerified(String deductionId) =>
-      _verifiedDeductions.contains(deductionId);
-
-  bool get allDeductionsVerified {
-    final checklist = currentCase.solution.deductionChecklist;
-    if (checklist.isEmpty) return true;
-    return checklist.every((d) => _verifiedDeductions.contains(d.id));
-  }
-
-  int get verifiedDeductionCount => _verifiedDeductions.length;
-
   // ============ EVIDENCE TIMELINE ============
 
   void completeTimeline() {
@@ -470,8 +405,10 @@ class GameStateProvider extends ChangeNotifier {
     return _currentClues.where((c) => herringIds.contains(c.sourceId)).length;
   }
 
-  // Reset
+  // ============ RESET ============
+
   Future<void> resetCurrentCase() async {
+    _batteryTimer?.cancel();
     await _saveService.resetCase(_currentCaseNumber);
     _currentClues = [];
     _currentSuspects = {};
@@ -483,19 +420,16 @@ class GameStateProvider extends ChangeNotifier {
     _revealedHints = {};
     _firedSuspenseEvents = {};
     _answeredInterrogations = {};
-    _verifiedDeductions = {};
     _timelineCompleted = false;
     _pendingSuspenseEvent = null;
-    _pendingRevelation = false;
-    _revelationShown = false;
-    _pendingDeductionUnlock = null;
-    _autoUnlockedDeductions = {};
     _timedEventsStarted = false;
     await _saveService.saveCaseStartTime(_currentCaseNumber, _caseStartTime!);
+    _initBattery();
     notifyListeners();
   }
 
   Future<void> resetAllProgress() async {
+    _batteryTimer?.cancel();
     await _saveService.resetAllProgress();
     _currentCaseNumber = 1;
     _solvedCases = {};
@@ -509,16 +443,14 @@ class GameStateProvider extends ChangeNotifier {
     _revealedHints = {};
     _firedSuspenseEvents = {};
     _answeredInterrogations = {};
-    _verifiedDeductions = {};
     _timelineCompleted = false;
     _pendingSuspenseEvent = null;
-    _tutorialStep = 0; // Ensure tutorial step is reset
-    _pendingDeductionUnlock = null;
-    _autoUnlockedDeductions = {};
+    _batteryPercent = 100.0;
     notifyListeners();
   }
 
-  // Per-case progress helpers (reads from save service for any case)
+  // ============ PER-CASE PROGRESS HELPERS ============
+
   int getClueCountForCase(int caseNumber) {
     if (caseNumber == _currentCaseNumber) return _currentClues.length;
     return _saveService.getClues(caseNumber).length;
@@ -527,51 +459,5 @@ class GameStateProvider extends ChangeNotifier {
   bool hasSavedProgressForCase(int caseNumber) {
     return _saveService.getClues(caseNumber).isNotEmpty ||
         _saveService.getSuspects(caseNumber).isNotEmpty;
-  }
-
-  // Tutorial Management
-  int get tutorialStep => _tutorialStep;
-  bool get isTutorialActive => _tutorialStep > 0;
-
-  void checkTutorial() {
-    // Start tutorial for tutorial-difficulty cases that haven't been completed
-    final isTutorialCase = _allCases.any(
-      (c) => c.caseNumber == _currentCaseNumber && c.difficulty == CaseDifficulty.tutorial,
-    );
-    if (isTutorialCase &&
-        !_saveService.isTutorialCompleted() &&
-        _tutorialStep == 0) {
-      startTutorial();
-    }
-  }
-
-  void startTutorial() {
-    _tutorialStep = 1;
-    notifyListeners();
-  }
-
-  void nextTutorialStep() {
-    if (_tutorialStep < 12) {
-      _tutorialStep++;
-
-      // Force a frame to complete before showing next step
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        notifyListeners();
-      });
-    } else {
-      endTutorial();
-    }
-  }
-
-  /// Advance the tutorial only if currently on [step].
-  /// Called when the player opens an app during the tutorial.
-  void advanceTutorialIfOnStep(int step) {
-    if (_tutorialStep == step) nextTutorialStep();
-  }
-
-  Future<void> endTutorial() async {
-    _tutorialStep = 0;
-    await _saveService.saveTutorialCompleted(true);
-    notifyListeners();
   }
 }

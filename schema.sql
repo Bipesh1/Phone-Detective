@@ -17,14 +17,17 @@ CREATE TABLE IF NOT EXISTS public.cases (
 
   -- Progression
   difficulty     text NOT NULL DEFAULT 'easy',   -- tutorial | easy | medium | hard | very_hard
-  total_clues    integer NOT NULL DEFAULT 0,     -- Total clue-able items for progress UI (X/Y)
-  unlock_requires jsonb NOT NULL DEFAULT '[]',   -- Array of case_numbers that must be solved first, e.g. [1, 2]
+  unlock_requires jsonb NOT NULL DEFAULT '[]',   -- Array of case_numbers that must be solved first
 
   -- Theming
   theme_color_hex text DEFAULT '#007AFF',
 
   -- Progressive hints (array of strings, vague → spoiler)
   hints          jsonb NOT NULL DEFAULT '[]',
+
+  -- Battery mechanic — creates real urgency (0 = no drain, battery stays full)
+  battery_start_percent   integer NOT NULL DEFAULT 100,  -- Phone battery % when player picks it up
+  battery_drain_per_minute decimal(5,2) NOT NULL DEFAULT 0, -- How fast battery drains (0 = static)
 
   -- ─── Phone Content (all JSONB) ────────────────────────────
   contacts       jsonb NOT NULL DEFAULT '[]',
@@ -54,10 +57,6 @@ CREATE TABLE IF NOT EXISTS public.cases (
 -- Step 2: Add columns if they don't exist yet (safe for existing tables)
 DO $$
 BEGIN
-  -- New columns added in this schema version
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cases' AND column_name = 'total_clues') THEN
-    ALTER TABLE public.cases ADD COLUMN total_clues integer NOT NULL DEFAULT 0;
-  END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cases' AND column_name = 'unlock_requires') THEN
     ALTER TABLE public.cases ADD COLUMN unlock_requires jsonb NOT NULL DEFAULT '[]';
   END IF;
@@ -72,6 +71,12 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cases' AND column_name = 'handler_briefing') THEN
     ALTER TABLE public.cases ADD COLUMN handler_briefing text NOT NULL DEFAULT '';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cases' AND column_name = 'battery_start_percent') THEN
+    ALTER TABLE public.cases ADD COLUMN battery_start_percent integer NOT NULL DEFAULT 100;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cases' AND column_name = 'battery_drain_per_minute') THEN
+    ALTER TABLE public.cases ADD COLUMN battery_drain_per_minute decimal(5,2) NOT NULL DEFAULT 0;
   END IF;
 END
 $$;
@@ -122,7 +127,7 @@ CREATE INDEX IF NOT EXISTS idx_cases_case_number ON public.cases (case_number);
 -- photos: [
 --   {
 --     "id": "p1",
---     "caption": "Screenshot of flight booking",          -- shown as title
+--     "caption": "Screenshot of flight booking",
 --     "description": "Detailed description of what the player sees in this photo",
 --     "timestamp": "2025-05-04T19:45:00Z"
 --   }
@@ -173,33 +178,44 @@ CREATE INDEX IF NOT EXISTS idx_cases_case_number ON public.cases (case_number);
 -- ]
 --
 -- solution: {
---   "guilty_contact_id": "owner",        -- contact id of the culprit (or "owner" for victim)
---   "motive": "Why they did it...",
---   "method": "How they did it...",
---   "key_clue_ids": ["m9", "nt1", "em4"],
+--   "guilty_contact_id": "jane",         -- contact id of the culprit
+--   "motive": "Full motive description shown after case is solved...",
+--   "method": "How they did it, shown after case is solved...",
+--   "key_clue_ids": ["m9", "nt1", "em4"], -- INTERNAL: used for post-solve scoring only
 --   "resolution": "What happened after the case was solved...",
---   "options": [
+--   "red_herrings": ["n5", "f5"],         -- IDs of misleading evidence
+--
+--   -- Accusation screen: player picks motive from these options (all plausible from evidence).
+--   -- One and only one should have "is_correct": true.
+--   -- If empty, motive step is skipped in the accusation flow.
+--   "motive_options": [
 --     {
---       "contact_id": "jane",
---       "label": "Jane Doe committed the crime",
---       "is_correct": false,
---       "feedback": "Shown when player picks this wrong answer"
+--       "id": "mo1",
+--       "text": "Financial gain from a life insurance policy",
+--       "is_correct": false
 --     },
 --     {
---       "contact_id": "owner",
---       "label": "The victim did it themselves",
---       "is_correct": true,
---       "feedback": "Correct! Here is why..."
---     }
---   ],
---   "deduction_checklist": [
+--       "id": "mo2",
+--       "text": "Jealousy — she discovered a secret affair",
+--       "is_correct": true
+--     },
 --     {
---       "id": "dc1",
---       "statement": "A logical deduction the player should verify",
---       "linkedClueIds": ["m9", "em4"]
+--       "id": "mo3",
+--       "text": "Fear of being exposed for embezzlement",
+--       "is_correct": false
+--     },
+--     {
+--       "id": "mo4",
+--       "text": "Revenge for a past betrayal",
+--       "is_correct": false
 --     }
 --   ],
---   "red_herrings": ["n5", "f5"]         -- IDs of misleading evidence
+--
+--   -- DEPRECATED: kept for backward compatibility with older cases in the DB.
+--   -- No longer used in gameplay — accusation is now open (all contacts pickable).
+--   "options": [],
+--   "deduction_checklist": [],
+--   "clue_insights": {}
 -- }
 --
 -- step_hints: [
@@ -223,18 +239,18 @@ CREATE INDEX IF NOT EXISTS idx_cases_case_number ON public.cases (case_number);
 --     "title": "CRITICAL MESSAGE FOUND",
 --     "message": "Atmospheric text shown to player...",
 --     "iconName": "warning",
---     "delaySeconds": 2                  -- seconds to wait before showing
+--     "delaySeconds": 2
 --   },
 --   -- Timed event: fires X seconds after player enters investigation:
 --   {
 --     "id": "se_timed_1",
---     "trigger": "afterTime",            -- fires after delaySeconds of gameplay
+--     "trigger": "afterTime",
 --     "triggerClueId": null,
---     "type": "incoming",                -- shows as a fake incoming notification
+--     "type": "incoming",
 --     "title": "NEW MESSAGE RECEIVED",
 --     "message": "A new message just arrived from an unknown contact...",
 --     "iconName": "message",
---     "delaySeconds": 120                -- fires 2 minutes into the investigation
+--     "delaySeconds": 120
 --   }
 -- ]
 --
@@ -242,7 +258,7 @@ CREATE INDEX IF NOT EXISTS idx_cases_case_number ON public.cases (case_number);
 --   {
 --     "id": "et1",
 --     "eventText": "What happened at this point in time",
---     "correctOrder": 1,                 -- 1-based chronological order
+--     "correctOrder": 1,
 --     "linkedClueId": "da1",
 --     "timestamp": "2025-05-01T16:00:00Z"
 --   }
@@ -255,15 +271,22 @@ CREATE INDEX IF NOT EXISTS idx_cases_case_number ON public.cases (case_number);
 --     "question": "Where were you that night?",
 --     "answers": [
 --       {
---         "requiredClueIds": [],          -- no clues needed = default answer
+--         "requiredClueIds": [],
 --         "response": "I was at home.",
 --         "revealsClueId": null
 --       },
 --       {
---         "requiredClueIds": ["m9"],      -- unlocked after finding clue m9
+--         "requiredClueIds": ["m9"],
 --         "response": "Okay fine, I was there. But I didn't do anything!",
 --         "revealsClueId": "iq_jane_reveal"
 --       }
 --     ]
 --   }
 -- ]
+--
+-- battery_start_percent: 23
+-- battery_drain_per_minute: 2.5
+--   → Phone starts at 23% battery, drains 2.5% per minute.
+--   → Player must prioritize apps — can't check everything leisurely.
+--   → At 0% the phone dies and investigation is forced to close.
+--   → Use 100 / 0 for cases with no battery pressure (default).

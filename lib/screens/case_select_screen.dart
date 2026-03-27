@@ -519,10 +519,7 @@ class _CaseCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       // Progress label
                       if (isUnlocked && hasProgress && !isSolved)
-                        _ProgressLabel(
-                          cluesFound: cluesFound,
-                          totalClues: caseData.totalClues,
-                        ),
+                        _ProgressLabel(cluesFound: cluesFound),
                     ],
                   ),
                 ],
@@ -542,9 +539,8 @@ class _CaseCard extends StatelessWidget {
 
 class _ProgressLabel extends StatelessWidget {
   final int cluesFound;
-  final int totalClues;
 
-  const _ProgressLabel({required this.cluesFound, required this.totalClues});
+  const _ProgressLabel({required this.cluesFound});
 
   @override
   Widget build(BuildContext context) {
@@ -554,7 +550,7 @@ class _ProgressLabel extends StatelessWidget {
         const Icon(Icons.bookmark, color: AppColors.clue, size: 11),
         const SizedBox(width: 3),
         Text(
-          '$cluesFound/$totalClues clues',
+          '$cluesFound clues logged',
           style: GoogleFonts.roboto(
             fontSize: 11,
             color: AppColors.clue,
