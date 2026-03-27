@@ -1,0 +1,109 @@
+Implementation Plan
+Phase 1 — Fix the Tutorial System (Foundation)
+1.1 — Make "How To Play" tutorial-only In case_intro_screen.dart, wrap the HOW TO PLAY block (lines 411–548) in:
+if (caseData.difficulty == CaseDifficulty.tutorial) ...
+All non-tutorial cases get a clean, immersive intro with no instructions.
+1.2 — Make tutorial banner messages dynamic TutorialBanner messages currently hardcode "MAYA CHEN" and "Lena Voss". Change every TutorialBanner embed across screens to pull contact names from gameState.currentCase.contacts instead of string literals. The widget stays, the content becomes case-aware.
+1.3 — Decouple phone_home_screen tutorial text Step 1 message in the overlay should be generated dynamically:
+case 1:
+  final owner = gameState.currentCase.contacts.firstWhere(...);
+  message = 'CASE ${...}\n\n${gameState.currentCase.scenario}\n\nStart by reading her Messages.';
+1.4 — Add a tutorial-complete flag guard on the banner All TutorialBanner placements should also check gameState.currentCase.difficulty == CaseDifficulty.tutorial so they are completely silenced on all other cases.
+________________________________________
+Phase 2 — Redesign Case 1 as a True Tutorial
+Rename Case 1: "THE LAST MESSAGE"
+•	Setting: A woman (Sara Novak) is found dead in her apartment. Ruled accidental. But her phone shows a text was sent 37 minutes after she died.
+•	Tension hook: Someone has her phone. Or someone sent a text using her dead hands. Either way — it wasn't an accident.
+•	Tutorial goal: Teach the mechanics through the investigation, not before it.
+Case 1 Tutorial Architecture:
+Step	Action	What player learns
+1	Briefing overlay (dynamic)	Story context
+2	Open Messages (gated)	App navigation
+3	Read Sara's last received message	Clue marking (long-press)
+4	Notice the "sent after death" message	Cross-checking timestamps
+5	Open Contacts	Contact inspection
+6	Open Notes	Notes/passwords mechanic
+7	Open Email	Cross-app trail
+8	Open Gallery	Photo evidence
+9	Journal → mark suspect	Suspect system
+10	Solve	Accusation flow
+Total clues: 5. Duration: ~8–12 minutes. Clear culprit (the ex-partner who knew her PIN).
+Remove the static 7-step how-to guide from the intro. Replace with a 2-line mission card: "Sara's phone was found unlocked. A message was sent after she died. Find out who was there."
+________________________________________
+Phase 3 — New Game Flow Architecture
+New screen flow:
+Splash
+  └─► Main Menu
+        ├─► "BEGIN" (new game) → Case 1 Tutorial Intro → Hacking Sim → Phone Home
+        ├─► "CONTINUE" (resume) → Phone Home (last case)
+        └─► "CASE FILES" (veteran) → Case Select Grid
+                          ↓
+              [After Case 1 solved]
+                          ↓
+              Case Complete Screen
+                          ↓
+              NEW: "Next Case Teaser" screen
+                    (brief teaser of Case 2, auto-unlocks)
+                          ↓
+              Case 2 Intro → Hacking Sim → Phone Home
+New: Case Transition Screen (case_transition_screen.dart)
+•	Shows after CaseCompleteScreen
+•	Displays: "CASE CLOSED. New case assigned."
+•	Animated incoming message from "HQ" or "Handler" character
+•	Shows a teaser: next case title + 1-line hook
+•	"ACCEPT CASE" button → goes directly to Case N+1 Intro
+•	Skip option → goes back to Case Files
+________________________________________
+Phase 4 — New Features (Thriller Mechanics)
+4.1 — Handler Briefings (new widget: handler_message_widget.dart) Each case starts with an incoming "secure message" from your handler — like a text message — that appears on the hacking simulator screen before the phone unlocks. This adds narrative context and urgency. Stored in CaseData as a handlerBriefing field.
+4.2 — Revelation Flash (new widget: revelation_overlay.dart) When the player marks the final key clue (clue count hits totalClues), show a 2-second full-screen dramatic flash: "CASE CRACKED" with the clue shown, then automatically offer to go to the Journal. Uses the existing suspenseEvents trigger mechanism — fire a special SuspenseTrigger.caseComplete event.
+4.3 — Evidence Connections (new tab in Journal: "Connections") A simple cork-board style view where key clues are shown as cards with lines drawn between connected ones. Read-only, auto-generated from existing keyClueIds. No user dragging required — just visual. Makes the case feel like a real detective wall.
+4.4 — Case Rating on Completion CaseCompleteScreen already exists but shows minimal info. Add a scoring panel:
+•	Speed (time played vs. par time from CaseData)
+•	Accuracy (no red herrings collected → bonus)
+•	Hints used (fewer = better)
+•	1–3 star rating
+Stored per-case in SaveService.
+4.5 — Interrogation Screen improvements The InterrogationScreen exists but is underused. For non-tutorial cases: after marking a suspect in Contacts, an "Interrogate" option unlocks. This deepens immersion and makes suspects feel like real people pushing back.
+________________________________________
+Phase 5 — Case Content Pipeline Fix
+5.1 — Fixed Case Schema (enforced) Every case in the DB/local data must have:
+•	handlerBriefing (string) — new field
+•	totalClues matching keyClueIds.length
+•	At least 1 suspenseEvent
+•	At least 1 interrogationQuestion per suspect
+•	redHerringIds not empty (minimum 1)
+•	evidenceTimeline not empty
+Add a CaseData.validate() method that throws in debug mode if any field is missing.
+5.2 — Case 1 rewrite (in Supabase + local fallback) Replace the Runaway Influencer data entirely with "The Last Message" (Sara Novak case). Keep same caseNumber: 1.
+5.3 — Case difficulty gating for features
+•	Tutorial case: step-by-step TutorialBanner + TutorialOverlay, How To Play guide, no interrogation, no rating
+•	Easy+: TutorialBanner OFF, How To Play OFF, interrogation ON, rating ON, handler briefing ON
+•	Hard+: suspense events more aggressive, fewer hints, tighter rating criteria
+________________________________________
+Phase 6 — Code Cleanup
+File	Change
+case_intro_screen.dart	Gate HOW TO PLAY behind tutorial flag; add handlerBriefing display
+messages_app_screen.dart	Dynamic tutorial banner messages; add tutorial-case guard
+conversation_screen.dart	Same
+email_app_screen.dart	Same
+gallery_app_screen.dart	Same
+notes_app_screen.dart	Same
+note_detail_screen.dart	Same
+phone_home_screen.dart	Dynamic step 1 message; guard tutorial overlay to tutorial cases only
+detective_journal_screen.dart	Add "Connections" tab (Phase 4.3)
+case_complete_screen.dart	Add rating panel + "Next Case" button (Phase 3 transition)
+game_state_provider.dart	Add caseRating, hintsUsed tracking; add handlerBriefing to CaseData
+NEW case_transition_screen.dart	Phase 3 transition
+NEW revelation_overlay.dart	Phase 4.2 flash
+________________________________________
+Execution Order
+1.	Phase 1 — fix the guide/tutorial bugs (quick wins, unblocks testing)
+2.	Phase 5.1 + 5.2 — new Case 1 story (the heart of the change)
+3.	Phase 2 — tutorial redesign to match new Case 1
+4.	Phase 3 — new game flow + transition screen
+5.	Phase 4 — new thriller features (revelation, handler briefings, rating)
+6.	Phase 6 — cleanup pass
+________________________________________
+Want me to start executing this? I'd suggest starting with Phase 1 (the guide bugs) + Phase 2/5.2 (the new Case 1 story) in parallel since they're independent. I'll write all the code — just confirm you want to proceed.
+

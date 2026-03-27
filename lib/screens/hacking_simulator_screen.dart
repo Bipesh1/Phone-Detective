@@ -4,9 +4,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/game_state_provider.dart';
+import '../models/case_data.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
+import '../widgets/handler_message_widget.dart';
 
 class HackingSimulatorScreen extends StatefulWidget {
   final String targetName; // e.g., "Ryan Miller's iPhone"
@@ -98,6 +102,9 @@ class _HackingSimulatorScreenState extends State<HackingSimulatorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final gameState = Provider.of<GameStateProvider>(context, listen: false);
+    final briefing = gameState.currentCase.handlerBriefing;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -106,6 +113,11 @@ class _HackingSimulatorScreenState extends State<HackingSimulatorScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Handler briefing — easy+ only, not shown during tutorial
+              if (briefing.isNotEmpty &&
+                  gameState.currentCase.difficulty != CaseDifficulty.tutorial)
+                HandlerMessageWidget(briefing: briefing),
+
               // Header
               Container(
                 padding:

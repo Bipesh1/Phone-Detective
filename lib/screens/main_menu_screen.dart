@@ -163,7 +163,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                     child: FadeTransition(
                       opacity: _buttonsController,
                       child: AnimatedButton(
-                        text: 'NEW GAME',
+                        text: 'BEGIN',
                         icon: Icons.play_arrow_rounded,
                         onPressed: () {
                           HapticService.mediumTap();
@@ -171,8 +171,9 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                             _showNoCasesDialog();
                             return;
                           }
-                          // Go to case select so user picks their case
-                          Navigator.pushNamed(context, AppRoutes.caseSelect);
+                          // Start Case 1 directly
+                          gameState.startCase(1);
+                          Navigator.pushNamed(context, AppRoutes.caseIntro);
                         },
                         width: buttonWidth,
                       ),
@@ -205,7 +206,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                     child: FadeTransition(
                       opacity: _buttonsController,
                       child: AnimatedButton(
-                        text: 'CASE SELECT',
+                        text: 'CASE FILES',
                         icon: Icons.folder_open,
                         onPressed: () {
                           HapticService.lightTap();

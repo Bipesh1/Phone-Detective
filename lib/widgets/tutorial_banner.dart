@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/game_state_provider.dart';
+import '../models/case_data.dart';
 
 class TutorialBanner extends StatefulWidget {
   /// Maps tutorial step numbers to the instruction text shown on that step.
@@ -25,6 +26,11 @@ class _TutorialBannerState extends State<TutorialBanner> {
   Widget build(BuildContext context) {
     final gameState = Provider.of<GameStateProvider>(context);
     if (!gameState.isTutorialActive) return const SizedBox.shrink();
+
+    // Only show tutorial banners for tutorial-difficulty cases
+    if (gameState.currentCase.difficulty != CaseDifficulty.tutorial) {
+      return const SizedBox.shrink();
+    }
 
     final step = gameState.tutorialStep;
     final message = widget.stepMessages[step];

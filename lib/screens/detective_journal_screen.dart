@@ -12,6 +12,7 @@ import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../models/clue.dart';
+import '../widgets/tutorial_banner.dart';
 
 class DetectiveJournalScreen extends StatefulWidget {
   const DetectiveJournalScreen({super.key});
@@ -27,7 +28,7 @@ class _DetectiveJournalScreenState extends State<DetectiveJournalScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -111,17 +112,29 @@ class _DetectiveJournalScreenState extends State<DetectiveJournalScreen>
             Tab(text: 'Clues${clueCount > 0 ? " ($clueCount)" : ""}'),
             Tab(text: 'Suspects${suspectCount > 0 ? " ($suspectCount)" : ""}'),
             const Tab(text: 'Timeline'),
+            const Tab(text: 'Connections'),
             const Tab(text: 'Notes'),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _CluesTab(gameState: gameState),
-          _SuspectsTab(gameState: gameState),
-          _TimelineTab(gameState: gameState),
-          _NotesTab(gameState: gameState),
+          TutorialBanner(stepMessages: {
+            11: 'Review your clues in the Evidence tab.\n'
+                'Head to Suspects to mark who you think did it, then tap MAKE YOUR ACCUSATION.',
+          }),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _CluesTab(gameState: gameState),
+                _SuspectsTab(gameState: gameState),
+                _TimelineTab(gameState: gameState),
+                _ConnectionsTab(gameState: gameState),
+                _NotesTab(gameState: gameState),
+              ],
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: _SolveBar(gameState: gameState),
@@ -415,6 +428,222 @@ class _TimelineTab extends StatelessWidget {
                 ),
         ),
       ],
+    );
+  }
+}
+
+// ─── Connections Tab ─────────────────────────────────────────────────────────
+
+class _ConnectionsTab extends StatelessWidget {
+  final GameStateProvider gameState;
+  const _ConnectionsTab({required this.gameState});
+
+  @override
+  Widget build(BuildContext context) {
+    final keyIds = gameState.currentCase.solution.keyClueIds;
+    final collectedIds =
+        gameState.currentClues.map((c) => c.sourceId).toSet();
+
+    if (keyIds.isEmpty) {
+      return _EmptyState(
+        icon: Icons.share,
+        title: 'No connections mapped',
+        subtitle: 'Collect key evidence to see how clues link together.',
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Icon(Icons.share, color: AppColors.clue, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                'EVIDENCE BOARD',
+                style: GoogleFonts.robotoMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.clue,
+                  letterSpacing: 2,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${collectedIds.intersection(keyIds.toSet()).length} / ${keyIds.length}',
+                style: GoogleFonts.robotoMono(
+                  fontSize: 11,
+                  color: AppColors.textTertiary,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Key pieces of evidence and how they connect.',
+            style: GoogleFonts.roboto(
+              fontSize: 12,
+              color: AppColors.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Evidence chain
+          ...List.generate(keyIds.length, (index) {
+            final id = keyIds[index];
+            final isFound = collectedIds.contains(id);
+            final clue = isFound
+                ? gameState.currentClues.firstWhere(
+                    (c) => c.sourceId == id,
+                    orElse: () => gameState.currentClues.first,
+                  )
+                : null;
+            final isLast = index == keyIds.length - 1;
+
+            return Column(
+              children: [
+                // Clue node
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isFound
+                        ? AppColors.clue.withValues(alpha: 0.08)
+                        : AppColors.surfaceDark,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isFound
+                          ? AppColors.clue.withValues(alpha: 0.35)
+                          : Colors.white12,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: isFound
+                              ? AppColors.clue.withValues(alpha: 0.15)
+                              : Colors.white.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: isFound
+                            ? Text(
+                                clue!.type.icon,
+                                style: const TextStyle(fontSize: 18),
+                              )
+                            : const Icon(
+                                Icons.lock_outline,
+                                color: AppColors.textTertiary,
+                                size: 18,
+                              ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isFound
+                                  ? clue!.type.label.toUpperCase()
+                                  : 'EVIDENCE ${index + 1}',
+                              style: GoogleFonts.robotoMono(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: isFound
+                                    ? AppColors.clue
+                                    : AppColors.textTertiary,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              isFound
+                                  ? clue!.preview
+                                  : 'Keep investigating to uncover this clue.',
+                              style: GoogleFonts.roboto(
+                                fontSize: 13,
+                                color: isFound
+                                    ? AppColors.textPrimary
+                                    : AppColors.textTertiary,
+                                height: 1.4,
+                                fontStyle: isFound
+                                    ? FontStyle.normal
+                                    : FontStyle.italic,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isFound)
+                        Icon(
+                          Icons.bookmark,
+                          color: AppColors.clue,
+                          size: 16,
+                        ),
+                    ],
+                  ),
+                ),
+
+                // Connector line (not after last)
+                if (!isLast)
+                  Container(
+                    height: 28,
+                    width: 2,
+                    margin: const EdgeInsets.only(left: 35),
+                    color: isFound
+                        ? AppColors.clue.withValues(alpha: 0.3)
+                        : Colors.white12,
+                    alignment: Alignment.centerLeft,
+                  ),
+              ],
+            );
+          }),
+
+          // Summary
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSecondary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  collectedIds.containsAll(keyIds)
+                      ? Icons.check_circle
+                      : Icons.info_outline,
+                  color: collectedIds.containsAll(keyIds)
+                      ? AppColors.success
+                      : AppColors.textTertiary,
+                  size: 16,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    collectedIds.containsAll(keyIds)
+                        ? 'All key evidence collected. You\'re ready to make your accusation.'
+                        : 'Find all ${keyIds.length} key pieces of evidence to build your case.',
+                    style: GoogleFonts.roboto(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

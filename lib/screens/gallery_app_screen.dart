@@ -73,7 +73,8 @@ class _GalleryAppScreenState extends State<GalleryAppScreen>
       body: Column(
         children: [
           TutorialBanner(stepMessages: {
-            14: 'Tap the flight booking screenshot.\nThis was taken by Lena hours before her phone was found.',
+            9: 'Tap a photo to inspect it fully. Check timestamps and locations.\n'
+                'The most recent photo may hold the biggest clue.',
           }),
           Expanded(
             child: TabBarView(
@@ -162,7 +163,8 @@ class _PhotoGrid extends StatelessWidget {
           hasHotspots: photo.hotspots.isNotEmpty,
           onTap: () {
             HapticService.lightTap();
-            if (photo.id == 'p1') gameState.advanceTutorialIfOnStep(14);
+            // Tutorial: opening any photo advances past the gallery step
+            gameState.advanceTutorialIfOnStep(8);
             Navigator.pushNamed(
               context,
               AppRoutes.photoViewer,

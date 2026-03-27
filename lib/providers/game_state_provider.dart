@@ -34,6 +34,17 @@ class GameStateProvider extends ChangeNotifier {
   bool _timelineCompleted = false;
   SuspenseEvent? _pendingSuspenseEvent;
 
+  // Revelation state
+  bool _pendingRevelation = false;
+  bool _revelationShown = false;
+
+  // Deduction auto-unlock state
+  String? _pendingDeductionUnlock;
+  Set<String> _autoUnlockedDeductions = {};
+
+  // Timed suspense guard — prevents re-firing when home screen rebuilds
+  bool _timedEventsStarted = false;
+
   // Getters
   List<CaseData> get cases => _allCases;
   int get currentCaseNumber => _currentCaseNumber;
@@ -54,6 +65,9 @@ class GameStateProvider extends ChangeNotifier {
   Set<String> get verifiedDeductions => _verifiedDeductions;
   bool get timelineCompleted => _timelineCompleted;
   SuspenseEvent? get pendingSuspenseEvent => _pendingSuspenseEvent;
+  bool get pendingRevelation => _pendingRevelation;
+  String? get pendingDeductionUnlock => _pendingDeductionUnlock;
+  int get hintsUsed => _revealedHints.values.fold(0, (sum, v) => sum + v);
 
   CaseData get currentCase {
     // Find case by number
@@ -96,6 +110,14 @@ class GameStateProvider extends ChangeNotifier {
       // Sort by case number
       _allCases.sort((a, b) => a.caseNumber.compareTo(b.caseNumber));
 
+      // Validate each case in debug mode (throws AssertionError if required fields missing)
+      for (final c in _allCases) {
+        assert(() {
+          c.validate();
+          return true;
+        }());
+      }
+
       // If we have cases and current case is invalid, reset to first
       if (_allCases.isNotEmpty &&
           _allCases.every((c) => c.caseNumber != _currentCaseNumber)) {
@@ -109,6 +131,12 @@ class GameStateProvider extends ChangeNotifier {
       if (_allCases.isEmpty) {
         _allCases = [...allCases];
         _isRemote = false;
+        for (final c in _allCases) {
+          assert(() {
+            c.validate();
+            return true;
+          }());
+        }
       }
     }
   }
@@ -146,6 +174,11 @@ class GameStateProvider extends ChangeNotifier {
       await _saveService.saveCaseStartTime(caseNumber, _caseStartTime!);
     }
 
+    _pendingRevelation = false;
+    _revelationShown = false;
+    _pendingDeductionUnlock = null;
+    _autoUnlockedDeductions = {};
+    _timedEventsStarted = false;
     await _saveService.saveCurrentCase(caseNumber);
     checkTutorial();
     notifyListeners();
@@ -154,6 +187,11 @@ class GameStateProvider extends ChangeNotifier {
   Future<void> solveCase() async {
     _solvedCases.add(_currentCaseNumber);
     await _saveService.markCaseSolved(_currentCaseNumber);
+    // End tutorial when case is correctly solved
+    if (_tutorialStep > 0) {
+      _tutorialStep = 0;
+      await _saveService.saveTutorialCompleted(true);
+    }
     notifyListeners();
   }
 
@@ -188,12 +226,49 @@ class GameStateProvider extends ChangeNotifier {
     });
   }
 
+  void clearPendingRevelation() {
+    _pendingRevelation = false;
+  }
+
+  void clearPendingDeductionUnlock() {
+    _pendingDeductionUnlock = null;
+  }
+
   // Clue Management
   Future<void> addClue(Clue clue) async {
     if (_currentClues.any((c) => c.sourceId == clue.sourceId)) return;
 
     _currentClues.add(clue);
     await _saveService.saveClues(_currentCaseNumber, _currentClues);
+
+    // Auto-unlock the first newly-completed deduction (shows one insight per clue mark)
+    if (_pendingDeductionUnlock == null) {
+      for (final deduction in currentCase.solution.deductionChecklist) {
+        if (_autoUnlockedDeductions.contains(deduction.id)) continue;
+        final allFound = deduction.linkedClueIds.every(
+          (cid) => _currentClues.any((c) => c.sourceId == cid),
+        );
+        if (allFound) {
+          _autoUnlockedDeductions.add(deduction.id);
+          _pendingDeductionUnlock = deduction.statement;
+          break;
+        }
+      }
+    }
+
+    // Check if all key clues are now collected
+    if (!_revelationShown) {
+      final keyIds = currentCase.solution.keyClueIds;
+      if (keyIds.isNotEmpty) {
+        final foundKeyCount =
+            _currentClues.where((c) => keyIds.contains(c.sourceId)).length;
+        if (foundKeyCount >= keyIds.length) {
+          _pendingRevelation = true;
+          _revelationShown = true;
+        }
+      }
+    }
+
     notifyListeners();
 
     // Check for suspense events triggered by this clue
@@ -304,22 +379,41 @@ class GameStateProvider extends ChangeNotifier {
   }
 
   /// Start timed suspense events (afterTime trigger).
-  /// Call this when the player enters the phone home screen.
+  /// Guarded at the provider level so it fires exactly once per case session,
+  /// regardless of how many times PhoneHomeScreen rebuilds.
   void startTimedEvents() {
+    if (_timedEventsStarted) return;
+    _timedEventsStarted = true;
+
     for (final event in currentCase.suspenseEvents) {
       if (_firedSuspenseEvents.contains(event.id)) continue;
       if (event.trigger == SuspenseTrigger.afterTime) {
         _firedSuspenseEvents.add(event.id);
         Future.delayed(Duration(seconds: event.delaySeconds), () {
-          // Only fire if no other event is pending
+          // Only fire if nothing else is showing — don't re-queue, just drop
           if (_pendingSuspenseEvent == null) {
             _pendingSuspenseEvent = event;
             notifyListeners();
-          } else {
-            // Re-queue: remove from fired so it can fire later
-            _firedSuspenseEvents.remove(event.id);
           }
         });
+      }
+    }
+  }
+
+  /// Fire onOpen suspense events for the given app name.
+  void triggerOnOpenSuspenseEvent(String appName) {
+    for (final event in currentCase.suspenseEvents) {
+      if (_firedSuspenseEvents.contains(event.id)) continue;
+      if (event.trigger == SuspenseTrigger.onOpen &&
+          event.appName == appName) {
+        _firedSuspenseEvents.add(event.id);
+        Future.delayed(Duration(seconds: event.delaySeconds), () {
+          if (_pendingSuspenseEvent == null) {
+            _pendingSuspenseEvent = event;
+            notifyListeners();
+          }
+        });
+        break; // One event per open
       }
     }
   }
@@ -392,6 +486,11 @@ class GameStateProvider extends ChangeNotifier {
     _verifiedDeductions = {};
     _timelineCompleted = false;
     _pendingSuspenseEvent = null;
+    _pendingRevelation = false;
+    _revelationShown = false;
+    _pendingDeductionUnlock = null;
+    _autoUnlockedDeductions = {};
+    _timedEventsStarted = false;
     await _saveService.saveCaseStartTime(_currentCaseNumber, _caseStartTime!);
     notifyListeners();
   }
@@ -414,6 +513,8 @@ class GameStateProvider extends ChangeNotifier {
     _timelineCompleted = false;
     _pendingSuspenseEvent = null;
     _tutorialStep = 0; // Ensure tutorial step is reset
+    _pendingDeductionUnlock = null;
+    _autoUnlockedDeductions = {};
     notifyListeners();
   }
 
@@ -433,8 +534,11 @@ class GameStateProvider extends ChangeNotifier {
   bool get isTutorialActive => _tutorialStep > 0;
 
   void checkTutorial() {
-    // Start tutorial if Case 1 and not completed
-    if (_currentCaseNumber == 1 &&
+    // Start tutorial for tutorial-difficulty cases that haven't been completed
+    final isTutorialCase = _allCases.any(
+      (c) => c.caseNumber == _currentCaseNumber && c.difficulty == CaseDifficulty.tutorial,
+    );
+    if (isTutorialCase &&
         !_saveService.isTutorialCompleted() &&
         _tutorialStep == 0) {
       startTutorial();
@@ -447,7 +551,7 @@ class GameStateProvider extends ChangeNotifier {
   }
 
   void nextTutorialStep() {
-    if (_tutorialStep < 15) {
+    if (_tutorialStep < 12) {
       _tutorialStep++;
 
       // Force a frame to complete before showing next step

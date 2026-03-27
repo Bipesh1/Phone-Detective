@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS public.cases (
   step_hints     jsonb NOT NULL DEFAULT '[]',
 
   -- Thriller mechanics
+  handler_briefing        text NOT NULL DEFAULT '',
   suspense_events         jsonb NOT NULL DEFAULT '[]',
   evidence_timeline       jsonb NOT NULL DEFAULT '[]',
   interrogation_questions jsonb NOT NULL DEFAULT '[]',
@@ -68,6 +69,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cases' AND column_name = 'interrogation_questions') THEN
     ALTER TABLE public.cases ADD COLUMN interrogation_questions jsonb NOT NULL DEFAULT '[]';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cases' AND column_name = 'handler_briefing') THEN
+    ALTER TABLE public.cases ADD COLUMN handler_briefing text NOT NULL DEFAULT '';
   END IF;
 END
 $$;

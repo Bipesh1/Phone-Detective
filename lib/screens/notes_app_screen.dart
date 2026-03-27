@@ -57,8 +57,8 @@ class NotesAppScreen extends StatelessWidget {
           : Column(
               children: [
                 TutorialBanner(stepMessages: {
-                  7: 'Open the pink note: "Draft Post - DO NOT PUBLISH YET"\nLena wrote something she didn\'t want anyone to see.',
-                  9: 'Now open the yellow note: "Packing List"\nShe packed for a long trip — look at what she chose to leave behind.',
+                  7: 'Open each note carefully. One may be locked — '
+                      'the password is hidden somewhere else on this phone.',
                 }),
                 ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.notes),
                 Expanded(
@@ -77,11 +77,6 @@ class NotesAppScreen extends StatelessWidget {
                         isUnlocked: isUnlocked,
                         onTap: () {
                           HapticService.lightTap();
-                          if (note.id == 'nt1') {
-                            gameState.advanceTutorialIfOnStep(7);
-                          } else if (note.id == 'nt2') {
-                            gameState.advanceTutorialIfOnStep(9);
-                          }
                           Navigator.pushNamed(
                             context,
                             AppRoutes.noteDetail,

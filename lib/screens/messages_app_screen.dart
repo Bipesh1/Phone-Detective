@@ -47,7 +47,10 @@ class MessagesAppScreen extends StatelessWidget {
           ? _EmptyState()
           : Column(
               children: [
-                TutorialBanner(stepMessages: {3: 'Open the conversation with MAYA CHEN — she was Lena\'s closest friend and the last person Lena spoke to before disappearing.'}),
+                TutorialBanner(stepMessages: {
+                  3: 'Open a conversation and read carefully.\nIf a message feels wrong, long-press it to mark it as a clue.',
+                  5: 'Good work! Tap ← to go back to the main phone screen.',
+                }),
                 Expanded(
                   child: ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -69,10 +72,9 @@ class MessagesAppScreen extends StatelessWidget {
                   messageCount: conv.messages.length,
                   onTap: () {
                     HapticService.lightTap();
-                    if (conv.contactId == 'maya') {
-                      Provider.of<GameStateProvider>(context, listen: false)
-                          .advanceTutorialIfOnStep(3);
-                    }
+                    // Tutorial: advance when opening any conversation
+                    Provider.of<GameStateProvider>(context, listen: false)
+                        .advanceTutorialIfOnStep(3);
                     Navigator.pushNamed(
                       context,
                       AppRoutes.conversation,

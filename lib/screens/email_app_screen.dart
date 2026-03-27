@@ -77,7 +77,8 @@ class _EmailAppScreenState extends State<EmailAppScreen> {
           : Column(
               children: [
                 TutorialBanner(stepMessages: {
-                  12: 'Open the SkyBridge Airlines email:\n"Flight Confirmation - DPS-7742"\nThis is the receipt for something Lena did the night before she disappeared.',
+                  8: 'Check every email — especially automated alerts.\n'
+                      'A timestamp in an email could change everything. Long-press to mark as evidence.',
                 }),
                 ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.email),
                 Expanded(
@@ -270,6 +271,8 @@ class _EmailTile extends StatelessWidget {
                         ClueDeductionSheet.show(
                           context: context,
                           preview: '${email.senderName}: ${email.subject}',
+                          insight: gameState.currentCase.solution
+                              .clueInsights[email.id],
                           onConfirm: () {
                             gameState.addClue(Clue(
                               id: email.id,
@@ -279,7 +282,8 @@ class _EmailTile extends StatelessWidget {
                                   '${email.senderName}: ${email.subject}',
                               foundAt: DateTime.now(),
                             ));
-                            if (email.id == 'em4') gameState.advanceTutorialIfOnStep(12);
+                            // Tutorial: marking any key email advances past the email step
+                            gameState.advanceTutorialIfOnStep(7);
                             HapticService.heavyTap();
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -405,6 +409,7 @@ class _EmailTile extends StatelessWidget {
       ClueDeductionSheet.show(
         context: context,
         preview: '${email.senderName}: ${email.subject}',
+        insight: gameState.currentCase.solution.clueInsights[email.id],
         onConfirm: () {
           gameState.addClue(Clue(
             id: email.id,

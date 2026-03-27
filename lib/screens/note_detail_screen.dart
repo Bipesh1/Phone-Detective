@@ -59,14 +59,10 @@ class NoteDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (noteId == 'nt1')
-              TutorialBanner(stepMessages: {
-                8: 'Hold this draft post to investigate it.\nLena scheduled it to go live after her flight — this is her farewell message.',
-              })
-            else if (noteId == 'nt2')
-              TutorialBanner(stepMessages: {
-                10: 'Hold this packing list to investigate it.\nRead the very last item carefully.',
-              }),
+            TutorialBanner(stepMessages: {
+              7: 'Read every word carefully. If this reveals something important, '
+                  'use the bookmark icon above to mark it as evidence.',
+            }),
             const SizedBox(height: 8),
             // Title
             Text(
@@ -185,9 +181,11 @@ class NoteDetailScreen extends StatelessWidget {
           ? '${note.content.substring(0, 60)}...'
           : note.content;
       final preview = '${note.title}: $contentSnippet';
+      final insight = gameState.currentCase.solution.clueInsights[noteId];
       ClueDeductionSheet.show(
         context: context,
         preview: preview,
+        insight: insight,
         onConfirm: () {
           gameState.addClue(Clue(
             id: noteId,
@@ -196,8 +194,8 @@ class NoteDetailScreen extends StatelessWidget {
             preview: preview,
             foundAt: DateTime.now(),
           ));
-          if (noteId == 'nt1') gameState.advanceTutorialIfOnStep(8);
-          if (noteId == 'nt2') gameState.advanceTutorialIfOnStep(10);
+          // Tutorial: marking any note as a key clue advances past the notes step
+          gameState.advanceTutorialIfOnStep(6);
           HapticService.heavyTap();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

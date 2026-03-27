@@ -2,7 +2,7 @@
 // This file exports all case data
 
 import '../../models/models.dart';
-import 'case_01_missing_hiker.dart';
+import 'case_01_the_last_message.dart';
 import 'case_02_office_theft.dart';
 import 'case_03_reunion_murder.dart';
 import 'case_04_locked_room.dart';
@@ -16,7 +16,7 @@ import 'case_10_detectives_phone.dart';
 export '../../models/models.dart';
 
 final List<CaseData> allCases = [
-  case01MissingHiker,
+  case01TheLastMessage,
   case02OfficeTheft,
   case03ReunionMurder,
   case04LockedRoom,

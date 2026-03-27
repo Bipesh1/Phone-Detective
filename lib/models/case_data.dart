@@ -36,6 +36,7 @@ class CaseData {
   final List<TimelineEvent> evidenceTimeline;
   final List<InterrogationQuestion> interrogationQuestions;
   final List<int> unlockRequires; // Case numbers that must be solved first
+  final String handlerBriefing; // Encrypted message from HQ shown on hacking screen
 
   const CaseData({
     required this.caseNumber,
@@ -61,6 +62,7 @@ class CaseData {
     this.evidenceTimeline = const [],
     this.interrogationQuestions = const [],
     this.unlockRequires = const [],
+    this.handlerBriefing = '',
   });
 
   Contact? getContact(String id) {
@@ -179,7 +181,29 @@ class CaseData {
       unlockRequires: (json['unlock_requires'] as List<dynamic>? ?? [])
           .map((e) => (e is int) ? e : int.tryParse(e.toString()) ?? 0)
           .toList(),
+
+      handlerBriefing: (json['handler_briefing'] as String?) ?? '',
     );
+  }
+
+  /// Throws an AssertionError in debug mode if required fields are missing.
+  void validate() {
+    assert(title.isNotEmpty, 'Case $caseNumber: title is empty');
+    assert(scenario.isNotEmpty, 'Case $caseNumber: scenario is empty');
+    assert(objective.isNotEmpty, 'Case $caseNumber: objective is empty');
+    assert(contacts.isNotEmpty, 'Case $caseNumber: no contacts defined');
+    assert(solution.keyClueIds.isNotEmpty, 'Case $caseNumber: no keyClueIds defined');
+    assert(
+      totalClues == solution.keyClueIds.length,
+      'Case $caseNumber: totalClues ($totalClues) != keyClueIds.length (${solution.keyClueIds.length})',
+    );
+    // Tutorial cases (difficulty 0) are intentionally simpler — skip checks
+    // that require red herrings, a timeline, and suspense events.
+    if (difficulty != CaseDifficulty.tutorial) {
+      assert(solution.redHerringIds.isNotEmpty, 'Case $caseNumber: no red herrings defined');
+      assert(evidenceTimeline.isNotEmpty, 'Case $caseNumber: no evidenceTimeline defined');
+      assert(suspenseEvents.isNotEmpty, 'Case $caseNumber: no suspenseEvents defined');
+    }
   }
 
   static CaseDifficulty _parseDifficulty(dynamic value) {
@@ -203,7 +227,7 @@ class CaseData {
       }
     }
 
-    // Handle string values from DB
+    // String fallback (e.g. local data or future migration)
     final str = value.toString().toLowerCase().trim();
     switch (str) {
       case 'tutorial':
@@ -296,6 +320,9 @@ class CaseSolution {
   final List<SolutionOption> options; // Multiple choice options
   final List<DeductionItem> deductionChecklist; // Logical deductions to verify
   final List<String> redHerringIds; // Misleading clue IDs
+  /// Per-clue insight shown when the player marks a key clue.
+  /// Key = clue/item ID, Value = one-sentence explanation of its significance.
+  final Map<String, String> clueInsights;
 
   const CaseSolution({
     required this.guiltyContactId,
@@ -306,6 +333,7 @@ class CaseSolution {
     required this.options,
     this.deductionChecklist = const [],
     this.redHerringIds = const [],
+    this.clueInsights = const {},
   });
 
   factory CaseSolution.fromJson(Map<String, dynamic> json) {
@@ -323,6 +351,9 @@ class CaseSolution {
           .toList(),
       redHerringIds:
           (json['red_herrings'] as List<dynamic>? ?? []).cast<String>(),
+      clueInsights: Map<String, String>.from(
+        (json['clue_insights'] as Map<dynamic, dynamic>?) ?? {},
+      ),
     );
   }
 

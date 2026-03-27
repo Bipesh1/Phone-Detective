@@ -9,6 +9,7 @@ import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../widgets/investigation_nav_bar.dart';
+import '../widgets/tutorial_banner.dart';
 
 class ContactsAppScreen extends StatefulWidget {
   const ContactsAppScreen({super.key});
@@ -71,6 +72,10 @@ class _ContactsAppScreenState extends State<ContactsAppScreen> {
       ),
       body: Column(
         children: [
+          TutorialBanner(stepMessages: {
+            5: 'Tap each contact to view their profile and messages.\n'
+                'Pay attention to relationships — someone had a reason to be there.',
+          }),
           // Search bar
           Padding(
             padding: const EdgeInsets.all(16),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/step_hint.dart';
+import '../models/case_data.dart';
 import '../providers/game_state_provider.dart';
 import '../utils/constants.dart';
 import '../services/haptic_service.dart';
@@ -17,8 +18,17 @@ class StepHintButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final gameState = Provider.of<GameStateProvider>(context);
     final revealedCount = gameState.getRevealedHintCount(stepHint.id);
-    final totalHints = stepHint.hints.length;
-    final allRevealed = revealedCount >= totalHints;
+    final difficulty = gameState.currentCase.difficulty;
+
+    // Hard cases get 1 hint max; very hard cases get none
+    final maxAllowed = switch (difficulty) {
+      CaseDifficulty.veryHard => 0,
+      CaseDifficulty.hard => 1,
+      _ => stepHint.hints.length,
+    };
+
+    final totalHints = maxAllowed; // effective cap
+    final allRevealed = revealedCount >= totalHints || totalHints == 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,8 +118,19 @@ class StepHintButton extends StatelessWidget {
           const SizedBox(height: 8),
         ],
 
-        // Reveal button
-        if (!allRevealed)
+        // Reveal button — hidden on very hard; capped on hard
+        if (totalHints == 0)
+          Center(
+            child: Text(
+              'No hints on Very Hard difficulty',
+              style: GoogleFonts.roboto(
+                fontSize: 12,
+                color: AppColors.textTertiary,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          )
+        else if (!allRevealed)
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -152,7 +173,9 @@ class StepHintButton extends StatelessWidget {
         else
           Center(
             child: Text(
-              'All hints revealed',
+              difficulty == CaseDifficulty.hard
+                  ? 'Hint limit reached (Hard mode)'
+                  : 'All hints revealed',
               style: GoogleFonts.roboto(
                 fontSize: 12,
                 color: AppColors.textTertiary,

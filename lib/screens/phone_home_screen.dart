@@ -11,6 +11,8 @@ import '../widgets/suspense_overlay.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
+import '../models/contact.dart';
+import '../models/case_data.dart';
 
 class PhoneHomeScreen extends StatefulWidget {
   const PhoneHomeScreen({super.key});
@@ -28,21 +30,16 @@ class _PhoneHomeScreenState extends State<PhoneHomeScreen> {
   final GlobalKey _callLogKey = GlobalKey(debugLabel: 'callLogKey');
   final GlobalKey _hintsKey = GlobalKey(debugLabel: 'hintsKey');
   final GlobalKey _journalKey = GlobalKey(debugLabel: 'journalKey');
-  bool _timedEventsStarted = false;
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_timedEventsStarted) {
-      _timedEventsStarted = true;
-      // Start timed suspense events after the first frame
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Provider.of<GameStateProvider>(context, listen: false)
-              .startTimedEvents();
-        }
-      });
-    }
+    // Provider has its own guard — safe to call every time
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<GameStateProvider>(context, listen: false)
+            .startTimedEvents();
+      }
+    });
   }
 
   @override
@@ -74,8 +71,8 @@ class _PhoneHomeScreenState extends State<PhoneHomeScreen> {
         if (!gameState.isTutorialActive) return const SizedBox.shrink();
 
         // Only show home overlay for steps that belong to the home screen.
-        // Steps 3-5, 7-10, 12, 14 are handled inside sub-screens via TutorialBanner.
-        const homeSteps = {1, 2, 6, 11, 13, 15};
+        // Steps 3-4 (inside messages) and 10 (journal solve) are sub-screen.
+        const homeSteps = {1, 2, 5, 6, 7, 8, 9, 10};
         if (!homeSteps.contains(gameState.tutorialStep)) {
           return const SizedBox.shrink();
         }
@@ -86,67 +83,102 @@ class _PhoneHomeScreenState extends State<PhoneHomeScreen> {
         bool isLast = false;
         bool requireAction = false;
 
+        final caseData = gameState.currentCase;
+        final clueCount = gameState.currentClues.length;
+
+        // Find the phone owner contact dynamically
+        Contact? ownerContact;
+        try {
+          ownerContact = caseData.contacts.firstWhere(
+            (c) =>
+                (c.relationship?.toLowerCase().contains('owner') ?? false) ||
+                c.id == 'owner' ||
+                c.id == 'me',
+          );
+        } catch (_) {
+          ownerContact = caseData.contacts.isNotEmpty ? caseData.contacts.first : null;
+        }
+        final ownerName = ownerContact?.firstName ?? 'the victim';
+
         switch (gameState.tutorialStep) {
-          // ── Step 1: Scene-setter ─────────────────────────────────────────
+          // ── Step 1: Scene-setter (dynamic from case data) ────────────────
           case 1:
             message =
-                'CASE 01 — "The Runaway Influencer"\n\n'
-                'Lifestyle influencer Lena Voss vanished the night before a major brand dinner. '
-                'Her phone was found in a Lyft.\n\n'
-                'You have full access. Start by reading her Messages.';
+                'CASE ${caseData.caseNumber.toString().padLeft(2, '0')} — "${caseData.title}"\n\n'
+                '${caseData.objective}\n\n'
+                'You have full access to $ownerName\'s phone.\n'
+                'Start by reading the Messages.';
             target = null;
             break;
 
-          // ── Step 2: Open Messages (action-gated) ────────────────────────
+          // ── Step 2: Open Messages (action-gated) ─────────────────────────
           case 2:
             message =
                 'Open Messages ↑\n\n'
-                'Read through every conversation carefully. '
-                'Lena\'s messages will tell you who knew what — and who she trusted.';
+                'Start by reading $ownerName\'s conversations. '
+                'Something in one of them doesn\'t add up.';
             target = _messagesKey;
             requireAction = true;
             break;
 
-          // ── Step 6: Open Notes (action-gated) ───────────────────────────
+          // ── Step 5: Open Contacts (action-gated) ─────────────────────────
+          case 5:
+            message =
+                '${clueCount > 0 ? '$clueCount clue${clueCount == 1 ? '' : 's'} found.\n\n' : ''}'
+                'Now open Contacts ↑\n\n'
+                'Review who $ownerName knew. Pay attention to '
+                'relationships — someone nearby had a reason to be there.';
+            target = _contactsKey;
+            requireAction = true;
+            break;
+
+          // ── Step 6: Open Call Log (action-gated) ─────────────────────────
           case 6:
             message =
-                '2 clues found — good work.\n\n'
+                'Now check Call Log ↑\n\n'
+                'Review who called $ownerName and when. '
+                'Calls made close to the time of death are key.';
+            target = _callLogKey;
+            requireAction = true;
+            break;
+
+          // ── Step 7: Open Notes (action-gated) ────────────────────────────
+          case 7:
+            message =
                 'Now open Notes ↑\n\n'
-                'Lena wrote private thoughts in her notes. '
-                'There may be passwords, plans, or confessions in there.';
+                '$ownerName kept private entries. '
+                'One may be locked — the unlock code is somewhere on this phone.';
             target = _notesKey;
             requireAction = true;
             break;
 
-          // ── Step 11: Open Emails (action-gated) ─────────────────────────
-          case 11:
+          // ── Step 8: Open Email (action-gated) ────────────────────────────
+          case 8:
             message =
-                '4 clues found.\n\n'
-                'Now open Emails ↑\n\n'
-                'Check every email — especially anything from business contacts. '
-                'Something was forwarded by accident.';
+                'Now check Email ↑\n\n'
+                'Apps send automated alerts when something goes wrong. '
+                'A timestamp in an email could change everything.';
             target = _emailKey;
             requireAction = true;
             break;
 
-          // ── Step 13: Open Gallery (action-gated) ────────────────────────
-          case 13:
+          // ── Step 9: Open Gallery (action-gated) ──────────────────────────
+          case 9:
             message =
-                '5 clues found.\n\n'
                 'Open Gallery ↑\n\n'
-                'Lena took photos in the hours before she disappeared. '
-                'One screenshot connects everything.';
+                'The most recent photo may not have been taken by $ownerName. '
+                'Check the timestamp and location carefully.';
             target = _galleryKey;
             requireAction = true;
             break;
 
-          // ── Step 15: Final — Open Journal ───────────────────────────────
-          case 15:
+          // ── Step 10: Open Journal — final step ───────────────────────────
+          case 10:
             message =
-                'All 6 clues found.\n\n'
+                '${clueCount > 0 ? '$clueCount clue${clueCount == 1 ? '' : 's'} found.\n\n' : ''}'
                 'Open your Detective Journal ↑\n\n'
-                'Review your evidence and tap SOLVE CASE '
-                'when you know what really happened to Lena Voss.';
+                'Review your evidence, mark a suspect, and tap SOLVE CASE '
+                'when you know what really happened.';
             target = _journalKey;
             requireAction = true;
             isLast = true;
@@ -679,20 +711,56 @@ class _AppGrid extends StatelessWidget {
 
     // Tutorial: auto-advance when the correct highlighted app is opened
     if (route == AppRoutes.messages) gs.advanceTutorialIfOnStep(2);
-    if (route == AppRoutes.notes) gs.advanceTutorialIfOnStep(6);
-    if (route == AppRoutes.email) gs.advanceTutorialIfOnStep(11);
-    if (route == AppRoutes.gallery) gs.advanceTutorialIfOnStep(13);
+    if (route == AppRoutes.contacts) gs.advanceTutorialIfOnStep(5);
+    if (route == AppRoutes.callLog) gs.advanceTutorialIfOnStep(6);
+    if (route == AppRoutes.notes) gs.advanceTutorialIfOnStep(7);
+    if (route == AppRoutes.email) gs.advanceTutorialIfOnStep(8);
+    if (route == AppRoutes.gallery) gs.advanceTutorialIfOnStep(9);
     if (route == AppRoutes.detectiveJournal) {
-      if (gs.isTutorialActive && gs.tutorialStep == 15) gs.endTutorial();
+      if (gs.isTutorialActive && gs.tutorialStep == 10) gs.nextTutorialStep();
     }
+
+    // onOpen suspense events — fire when player opens a specific app
+    const routeToApp = {
+      AppRoutes.messages: 'messages',
+      AppRoutes.gallery: 'gallery',
+      AppRoutes.contacts: 'contacts',
+      AppRoutes.email: 'email',
+      AppRoutes.notes: 'notes',
+      AppRoutes.callLog: 'call_log',
+      AppRoutes.detectiveJournal: 'journal',
+    };
+    final appName = routeToApp[route];
+    if (appName != null) gs.triggerOnOpenSuspenseEvent(appName);
 
     Navigator.pushNamed(context, route);
   }
 
   void _showHintsDialog(BuildContext context) {
     HapticService.mediumTap();
-    final hints = gameState.currentCase.hints;
-    // Use revealed hints count from game state
+    final difficulty = gameState.currentCase.difficulty;
+
+    // Very hard: no hints allowed
+    if (difficulty == CaseDifficulty.veryHard) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'No hints available on Very Hard difficulty.',
+            style: GoogleFonts.roboto(color: Colors.white),
+          ),
+          backgroundColor: AppColors.surfaceDark,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final allHints = gameState.currentCase.hints;
+    // Hard: cap at 1 hint
+    final hints = difficulty == CaseDifficulty.hard && allHints.isNotEmpty
+        ? allHints.sublist(0, 1)
+        : allHints;
+
     final revealedCount = gameState.revealedHints['_general'] ?? 0;
 
     showDialog(
@@ -765,7 +833,7 @@ class _ActionDock extends StatelessWidget {
             onTap: () {
               HapticService.lightTap();
               final gs = Provider.of<GameStateProvider>(context, listen: false);
-              if (gs.isTutorialActive && gs.tutorialStep == 15) gs.endTutorial();
+              if (gs.isTutorialActive && gs.tutorialStep == 10) gs.endTutorial();
               Navigator.pushNamed(context, AppRoutes.detectiveJournal);
             },
           ),

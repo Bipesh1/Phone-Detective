@@ -3,7 +3,8 @@
 class SuspenseEvent {
   final String id;
   final SuspenseTrigger trigger;
-  final String? triggerClueId; // Which clue triggers this event
+  final String? triggerClueId; // Which clue triggers this event (afterClue)
+  final String? appName; // Which app triggers this event (onOpen)
   final SuspenseType type;
   final String title;
   final String message;
@@ -14,6 +15,7 @@ class SuspenseEvent {
     required this.id,
     required this.trigger,
     this.triggerClueId,
+    this.appName,
     required this.type,
     required this.title,
     required this.message,
@@ -30,6 +32,7 @@ class SuspenseEvent {
       ),
       triggerClueId: json['triggerClueId'] as String? ??
           json['trigger_clue_id'] as String?,
+      appName: json['appName'] as String? ?? json['app_name'] as String?,
       type: SuspenseType.values.firstWhere(
         (e) => e.name == (json['type'] as String? ?? 'notification'),
         orElse: () => SuspenseType.notification,

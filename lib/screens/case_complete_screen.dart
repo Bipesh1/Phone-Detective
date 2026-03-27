@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/game_state_provider.dart';
+import '../models/case_data.dart';
 import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
@@ -196,6 +197,21 @@ class _CaseCompleteScreenState extends State<CaseCompleteScreen>
                         ],
 
                         const SizedBox(height: 32),
+
+                        // ── Rating (easy+ only, not shown for tutorial) ──
+                        if (widget.isCorrect &&
+                            caseData.difficulty !=
+                                CaseDifficulty.tutorial) ...[
+                          const SizedBox(height: 16),
+                          _RatingPanel(
+                            timeTaken: widget.timeTaken,
+                            cluesFound: gameState.currentClues.length,
+                            totalClues: caseData.totalClues,
+                            redHerringsMarked: gameState.redHerringCount,
+                            hintsUsed: gameState.hintsUsed,
+                            difficulty: caseData.difficulty,
+                          ),
+                        ],
 
                         // ── Actions ──
                         _ActionButtons(
@@ -558,6 +574,147 @@ class _ResolutionCard extends StatelessWidget {
   }
 }
 
+// ─── Rating Panel ────────────────────────────────────────────────────────────
+
+class _RatingPanel extends StatelessWidget {
+  final Duration timeTaken;
+  final int cluesFound;
+  final int totalClues;
+  final int redHerringsMarked;
+  final int hintsUsed;
+  final CaseDifficulty difficulty;
+
+  const _RatingPanel({
+    required this.timeTaken,
+    required this.cluesFound,
+    required this.totalClues,
+    required this.redHerringsMarked,
+    required this.hintsUsed,
+    required this.difficulty,
+  });
+
+  // Thresholds tighten with difficulty
+  double get _clueThreshold {
+    if (difficulty == CaseDifficulty.hard ||
+        difficulty == CaseDifficulty.veryHard) {
+      return 1.0; // all clues required on hard+
+    }
+    return 0.8; // 80% for easy / medium
+  }
+
+  int get _timeLimit {
+    switch (difficulty) {
+      case CaseDifficulty.veryHard:
+        return 10;
+      case CaseDifficulty.hard:
+        return 15;
+      default:
+        return 20;
+    }
+  }
+
+  int get stars {
+    int s = 1; // always at least 1 for a correct answer
+    final clueRatio = totalClues > 0 ? cluesFound / totalClues : 0.0;
+    if (clueRatio >= _clueThreshold && redHerringsMarked == 0) s++;
+    if (s >= 2 && hintsUsed == 0 && timeTaken.inMinutes < _timeLimit) s++;
+    return s.clamp(1, 3);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = stars;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundSecondary,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'PERFORMANCE RATING',
+            style: GoogleFonts.robotoMono(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textTertiary,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(3, (i) {
+              final filled = i < s;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Icon(
+                  filled ? Icons.star_rounded : Icons.star_outline_rounded,
+                  color: filled ? const Color(0xFFFFD700) : Colors.white24,
+                  size: 40,
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            s == 3
+                ? 'Perfect — Master Detective'
+                : s == 2
+                    ? 'Good — Senior Detective'
+                    : 'Solved — Rookie Detective',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: s == 3
+                  ? const Color(0xFFFFD700)
+                  : s == 2
+                      ? const Color(0xFFC0C0C0)
+                      : AppColors.textSecondary,
+            ),
+          ),
+          if (s < 3) ...[
+            const SizedBox(height: 10),
+            Divider(color: Colors.white12),
+            const SizedBox(height: 8),
+            Text(
+              _improvementHint(s),
+              style: GoogleFonts.roboto(
+                fontSize: 11,
+                color: AppColors.textTertiary,
+                height: 1.4,
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _improvementHint(int s) {
+    if (redHerringsMarked > 0) {
+      return 'You marked a red herring. Stay focused on the key evidence next time.';
+    }
+    if (hintsUsed > 0) {
+      return 'You used $hintsUsed hint${hintsUsed != 1 ? 's' : ''}. Try solving without them for a higher rating.';
+    }
+    if (totalClues > 0 && cluesFound < totalClues) {
+      final missed = totalClues - cluesFound;
+      if (difficulty == CaseDifficulty.hard ||
+          difficulty == CaseDifficulty.veryHard) {
+        return 'Hard cases require all $totalClues clues. You missed $missed — search every app.';
+      }
+      return 'You missed $missed clue${missed != 1 ? 's' : ''}. Search every app thoroughly next time.';
+    }
+    final limit = _timeLimit;
+    return 'Solve in under ${limit}m with no hints to earn 3 stars.';
+  }
+}
+
 // ─── Action Buttons ──────────────────────────────────────────────────────────
 
 class _ActionButtons extends StatelessWidget {
@@ -585,8 +742,11 @@ class _ActionButtons extends StatelessWidget {
               if (isCorrect &&
                   nextCase <= 10 &&
                   gameState.isCaseUnlocked(nextCase)) {
-                gameState.startCase(nextCase);
-                Navigator.pushReplacementNamed(context, AppRoutes.caseIntro);
+                Navigator.pushReplacementNamed(
+                  context,
+                  AppRoutes.caseTransition,
+                  arguments: {'nextCaseNumber': nextCase},
+                );
               } else {
                 Navigator.pushReplacementNamed(context, AppRoutes.caseSelect);
               }

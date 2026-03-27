@@ -9,6 +9,8 @@ import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../services/haptic_service.dart';
 import '../models/clue.dart';
+import '../models/case_data.dart';
+import '../widgets/tutorial_banner.dart';
 
 class ContactDetailScreen extends StatelessWidget {
   final String contactId;
@@ -142,6 +144,13 @@ class ContactDetailScreen extends StatelessWidget {
               ),
             ),
           ),
+          // Tutorial guidance for contact inspection
+          SliverToBoxAdapter(
+            child: TutorialBanner(stepMessages: {
+              5: 'Check this contact\'s details and relationship to the victim.\n'
+                  'Tap "Message" to read their conversation thread.',
+            }),
+          ),
           // Content
           SliverToBoxAdapter(
             child: Padding(
@@ -270,10 +279,13 @@ class ContactDetailScreen extends StatelessWidget {
                           .toList(),
                     ),
                   ],
-                  // Interrogation button
-                  if (gameState.currentCase.hasInterrogationQuestions(
-                    contactId,
-                  )) ...[
+                  // Interrogation button — only for non-tutorial cases and marked suspects
+                  if (isSuspect &&
+                      gameState.currentCase.difficulty !=
+                          CaseDifficulty.tutorial &&
+                      gameState.currentCase.hasInterrogationQuestions(
+                        contactId,
+                      )) ...[
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,

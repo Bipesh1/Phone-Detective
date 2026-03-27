@@ -13,6 +13,7 @@ import '../widgets/clue_deduction_sheet.dart';
 import '../widgets/clue_hint_banner.dart';
 import '../widgets/voicemail_player.dart';
 import '../widgets/investigation_nav_bar.dart';
+import '../widgets/tutorial_banner.dart';
 
 class CallLogScreen extends StatelessWidget {
   const CallLogScreen({super.key});
@@ -51,6 +52,10 @@ class CallLogScreen extends StatelessWidget {
           ? _EmptyState()
           : Column(
               children: [
+                TutorialBanner(stepMessages: {
+                  6: 'Check who called that night and when.\n'
+                      'Missed calls and voicemails can reveal motive and timing.',
+                }),
                 ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.callLog),
                 Expanded(
                   child: ListView.builder(
@@ -405,9 +410,12 @@ class _CallTile extends StatelessWidget {
                       final callDesc =
                           '${call.type.name} call — ${contact?.fullName ?? call.phoneNumber}'
                           '${call.transcription != null ? ' (Voicemail)' : ''}';
+                      final insight = gameState.currentCase.solution
+                          .clueInsights[call.id];
                       ClueDeductionSheet.show(
                         context: context,
                         preview: callDesc,
+                        insight: insight,
                         onConfirm: () {
                           gameState.addClue(Clue(
                             id: call.id,

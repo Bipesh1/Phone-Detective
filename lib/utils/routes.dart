@@ -23,6 +23,7 @@ import '../screens/case_intro_screen.dart';
 import '../screens/hacking_simulator_screen.dart';
 import '../screens/timeline_builder_screen.dart';
 import '../screens/interrogation_screen.dart';
+import '../screens/case_transition_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -47,6 +48,7 @@ class AppRoutes {
   static const String hackingSimulator = '/hacking-simulator';
   static const String timelineBuilder = '/timeline-builder';
   static const String interrogation = '/interrogation';
+  static const String caseTransition = '/case-transition';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -147,6 +149,13 @@ class AppRoutes {
         final args = settings.arguments as Map<String, dynamic>?;
         return _buildPageRoute(
           InterrogationScreen(contactId: args?['contactId'] ?? ''),
+          settings,
+        );
+
+      case caseTransition:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return _buildPageRoute(
+          CaseTransitionScreen(nextCaseNumber: args?['nextCaseNumber'] ?? 1),
           settings,
         );
 

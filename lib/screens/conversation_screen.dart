@@ -94,11 +94,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
       bottomNavigationBar: const InvestigationNavBar(),
       body: Column(
         children: [
-          if (widget.contactId == 'maya')
-            TutorialBanner(stepMessages: {
-              4: 'Scroll to the bottom of this conversation.\nHold the message: "I booked a one-way flight. Bali." to investigate it.',
-              5: 'Good catch! Now hold the message:\n"By the time anyone reads it, I\'ll be in the air."\nInvestigate it the same way.',
-            }),
+          TutorialBanner(stepMessages: {
+            4: 'Look for messages with unusual timestamps or tone changes.\nLong-press a suspicious message to mark it as a clue.',
+            5: 'Evidence saved! Tap ← to return to the phone and keep exploring.',
+          }),
           ClueHintBanner(clueCount: gameState.currentClues.length, context: InvestigationContext.conversation),
           // Messages
           Expanded(
@@ -309,9 +308,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
     // Key clue found — show deduction confirmation
     final preview =
         '$senderName: ${message.content.length > 80 ? '${message.content.substring(0, 80)}...' : message.content}';
+    final insight = gameState.currentCase.solution.clueInsights[message.id];
     ClueDeductionSheet.show(
       context: context,
       preview: preview,
+      insight: insight,
       onConfirm: () {
         gameState.addClue(Clue(
           id: message.id,
@@ -320,8 +321,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
           preview: preview,
           foundAt: DateTime.now(),
         ));
-        if (message.id == 'm9') gameState.advanceTutorialIfOnStep(4);
-        if (message.id == 'm11') gameState.advanceTutorialIfOnStep(5);
+        // Tutorial: marking any key clue in a conversation advances step 4 → 5
+        gameState.advanceTutorialIfOnStep(4);
         HapticService.heavyTap();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
